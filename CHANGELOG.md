@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.17](https://github.com/mayurrawte/searoute-ts/compare/v1.1.15...v1.1.17) (2022-07-12)
+
 ### [1.1.15](https://github.com/mayurrawte/searoute-ts/compare/v1.1.12...v1.1.15) (2022-07-12)
 
 ### 1.1.13 (2022-07-12)
