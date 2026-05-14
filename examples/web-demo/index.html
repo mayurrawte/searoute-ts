@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Interactive demo of searoute-ts — compute shortest sea routes between any two points, with canal restrictions, vessel-draft gating, and K-shortest alternatives."
+    />
+    <meta property="og:title" content="searoute-ts — interactive demo" />
+    <meta
+      property="og:description"
+      content="Click any two points on the ocean and get a real shipping route. Suez, Panama, vessel-draft, alternatives — all live in the browser."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+      crossorigin="anonymous"
+    />
+    <title>searoute-ts — interactive sea-route demo</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar" data-state="empty">
+        <header class="brand">
+          <h1>
+            <span class="brand-mark">⚓︎</span>
+            <span>searoute-ts</span>
+          </h1>
+          <p class="tagline">Shortest sea route between any two points on Earth</p>
+          <div class="meta-row">
+            <a class="chip" href="https://www.npmjs.com/package/searoute-ts" target="_blank" rel="noopener">npm</a>
+            <a class="chip" href="https://github.com/mayurrawte/searoute-ts" target="_blank" rel="noopener">GitHub</a>
+            <a class="chip" href="https://github.com/mayurrawte/searoute-ts/blob/main/DOCS.md" target="_blank" rel="noopener">Docs</a>
+          </div>
+        </header>
+
+        <section class="card">
+          <h2>Route</h2>
+          <div class="route-inputs">
+            <label>
+              <span class="label-prefix" data-pin="origin">A</span>
+              <input id="origin" placeholder="origin — click map or pick a preset" readonly />
+            </label>
+            <label>
+              <span class="label-prefix" data-pin="destination">B</span>
+              <input id="destination" placeholder="destination — click map or pick a preset" readonly />
+            </label>
+          </div>
+
+          <div class="presets">
+            <span class="presets-label">Presets:</span>
+            <span id="preset-buttons"></span>
+          </div>
+
+          <div class="actions">
+            <button id="swap" class="btn">Swap A ⇄ B</button>
+            <button id="reset" class="btn">Reset</button>
+            <button id="share" class="btn btn-primary">Copy share link</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Options</h2>
+          <div class="opt-grid">
+            <label class="opt">
+              <span>Vessel speed</span>
+              <span class="opt-control">
+                <input id="speed" type="number" min="0" max="40" step="1" value="22" />
+                <span class="unit">kn</span>
+              </span>
+            </label>
+            <label class="opt">
+              <span>Vessel draft</span>
+              <span class="opt-control">
+                <input id="draft" type="number" min="0" max="25" step="0.1" value="14" />
+                <span class="unit">m</span>
+              </span>
+            </label>
+          </div>
+
+          <fieldset class="toggles">
+            <legend>Restrictions</legend>
+            <label><input type="checkbox" data-restrict="suez" /> Suez Canal</label>
+            <label><input type="checkbox" data-restrict="babelmandeb" /> Bab-el-Mandeb</label>
+            <label><input type="checkbox" data-restrict="panama" /> Panama Canal</label>
+            <label><input type="checkbox" data-restrict="malacca" /> Malacca Strait</label>
+            <label><input type="checkbox" data-restrict="gibraltar" /> Gibraltar</label>
+            <label><input type="checkbox" data-allow-arctic /> Allow Arctic routes</label>
+          </fieldset>
+        </section>
+
+        <section class="card results" id="results">
+          <h2>Result</h2>
+          <p class="hint">Click any two points on the map, or pick a preset, to compute a route.</p>
+        </section>
+
+        <section class="card code-card" id="code-card" hidden>
+          <h2>Code for this route</h2>
+          <pre id="code-snippet"></pre>
+        </section>
+
+        <footer class="footer">
+          <span>
+            Data:
+            <a href="https://github.com/eurostat/searoute" target="_blank" rel="noopener">Eurostat marnet v3.5</a> · Map:
+            <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>
+          </span>
+        </footer>
+      </aside>
+
+      <main id="map-wrap">
+        <div id="map"></div>
+        <div id="hint" class="hint-overlay">Click the map to set <strong>A</strong> (origin)</div>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
