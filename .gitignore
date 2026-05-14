@@ -1,9 +1,10 @@
-.idea/*
-.nyc_output
-build
+.idea/
+.vscode/
+.DS_Store
 node_modules
-test
-src/**.js
+dist
+build
 coverage
 *.log
+*.tsbuildinfo
 yarn.lock

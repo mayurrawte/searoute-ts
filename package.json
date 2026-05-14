@@ -1,124 +1,119 @@
 {
   "name": "searoute-ts",
-  "version": "1.2.1",
-  "description": "Typescript implementation of Searoute-js",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "module": "dist/index.js",
+  "version": "2.0.0",
+  "description": "Shortest sea route between any two points on Earth. TypeScript library with the Eurostat 2025 maritime network, canal/strait restrictions (Suez, Panama, Bab-el-Mandeb…), vessel-draft gating, K-shortest alternatives, multi-leg waypoints, and ETA from vessel speed. Dual ESM/CJS, zero peer deps.",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mayurrawte/searoute-ts.git"
   },
   "license": "MIT",
+  "author": "Mayur Rawte",
   "keywords": [
     "searoute",
+    "sea-route",
+    "sea-routes",
     "marine-route",
-    "ocean route"
+    "ocean-route",
+    "maritime-route",
+    "shipping-route",
+    "shipping-lanes",
+    "ship-routing",
+    "vessel-routing",
+    "voyage-planning",
+    "port-to-port",
+    "great-circle",
+    "nautical-miles",
+    "shortest-path",
+    "dijkstra",
+    "geojson",
+    "maritime",
+    "shipping",
+    "logistics",
+    "supply-chain",
+    "ocean-shipping",
+    "container-shipping",
+    "suez",
+    "panama-canal",
+    "cape-of-good-hope",
+    "eurostat",
+    "marnet",
+    "typescript"
   ],
   "scripts": {
-    "build": "run-p build:*",
-    "build:main": "tsc -p tsconfig.json",
-    "build:module": "tsc -p tsconfig.module.json",
-    "fix": "run-s fix:*",
-    "fix:prettier": "prettier \"src/**/*.ts\" --write",
-    "fix:lint": "eslint src --ext .ts --fix",
-    "test": "run-s build test:*",
-    "test:lint": "eslint src --ext .ts",
-    "test:prettier": "prettier \"src/**/*.ts\" --list-different",
-    "test:spelling": "cspell \"{README.md,.github/*.md,src/**/*.ts}\"",
-    "test:unit": "nyc --silent ava",
-    "check-cli": "run-s test diff-integration-tests check-integration-tests",
-    "check-integration-tests": "run-s check-integration-test:*",
-    "diff-integration-tests": "mkdir -p diff && rm -rf diff/test && cp -r test diff/test && rm -rf diff/test/test-*/.git && cd diff && git init --quiet && git add -A && git commit --quiet --no-verify --allow-empty -m 'WIP' && echo '\\n\\nCommitted most recent integration test output in the \"diff\" directory. Review the changes with \"cd diff && git diff HEAD\" or your preferred git diff viewer.'",
-    "watch:build": "tsc -p tsconfig.json -w",
-    "watch:test": "nyc --silent ava --watch",
-    "cov": "run-s build test:unit cov:html cov:lcov && open-cli coverage/index.html",
-    "cov:html": "nyc report --reporter=html",
-    "cov:lcov": "nyc report --reporter=lcov",
-    "cov:send": "run-s cov:lcov && codecov",
-    "cov:check": "nyc report && nyc check-coverage --lines 100 --functions 100 --branches 100",
-    "doc": "run-s doc:html && open-cli dist/docs/index.html",
-    "doc:html": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --out build/docs",
-    "doc:json": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --json build/docs/typedoc.json",
-    "doc:publish": "gh-pages -m \"[ci skip] Updates\" -d build/docs",
-    "version": "standard-version",
-    "reset-hard": "git clean -dfx && git reset --hard && npm i",
-    "prepare-release": "run-s reset-hard test cov:check doc:html version doc:publish"
+    "clean": "rm -rf dist build coverage",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:types && node scripts/fixup-cjs.cjs",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.{ts,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,json}\"",
+    "test": "npm run build:test && ava",
+    "test:unit": "ava",
+    "build:test": "tsc -p tsconfig.test.json",
+    "prepublishOnly": "npm run lint && npm run test"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=18"
   },
   "dependencies": {
-    "@turf/helpers": "^6.5.0",
-    "@turf/length": "^6.5.0",
-    "@turf/meta": "^6.5.0",
-    "@turf/point-to-line-distance": "^6.5.0",
-    "@turf/rhumb-distance": "^6.5.0",
-    "@turf/turf": "^6.5.0",
-    "ts-geojson-path-finder": "^1.0.2"
+    "@turf/distance": "^7.3.0",
+    "@turf/helpers": "^7.3.0",
+    "@turf/length": "^7.3.0",
+    "@turf/meta": "^7.3.0",
+    "@turf/point-to-line-distance": "^7.3.0",
+    "geojson-path-finder": "^2.1.0"
   },
   "devDependencies": {
-    "@ava/typescript": "^1.1.1",
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@types/node": "^18.0.3",
-    "@typescript-eslint/eslint-plugin": "^4.0.1",
-    "@typescript-eslint/parser": "^4.0.1",
-    "ava": "^3.12.1",
-    "codecov": "^3.5.0",
-    "cspell": "^4.1.0",
-    "cz-conventional-changelog": "^3.3.0",
-    "eslint": "^7.8.0",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-eslint-comments": "^3.2.0",
-    "eslint-plugin-functional": "^3.0.2",
-    "eslint-plugin-import": "^2.22.0",
-    "gh-pages": "^3.1.0",
-    "npm-run-all": "^4.1.5",
-    "nyc": "^15.1.0",
-    "open-cli": "^6.0.1",
-    "prettier": "^2.1.1",
-    "standard-version": "^9.0.0",
-    "ts-node": "^9.0.0",
-    "typedoc": "^0.19.0",
-    "typescript": "^4.0.2"
+    "@ava/typescript": "^6.0.0",
+    "@types/geojson": "^7946.0.14",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "ava": "^6.2.0",
+    "eslint": "^9.16.0",
+    "prettier": "^3.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.18.0"
   },
   "files": [
     "dist",
-    "!**/*.spec.*",
-    "!**/*.json",
     "CHANGELOG.md",
     "LICENSE",
     "README.md"
   ],
   "ava": {
-    "failFast": true,
-    "timeout": "60s",
     "typescript": {
       "rewritePaths": {
-        "src/": "build/main/"
-      }
+        "src/": "build/test/"
+      },
+      "compile": false
     },
     "files": [
-      "!build/module/**"
-    ]
-  },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
+      "src/**/*.spec.ts"
+    ],
+    "timeout": "60s"
   },
   "prettier": {
-    "singleQuote": true
-  },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
-    "exclude": [
-      "**/*.spec.js"
-    ]
+    "singleQuote": true,
+    "printWidth": 100,
+    "trailingComma": "all"
   },
   "bugs": {
     "url": "https://github.com/mayurrawte/searoute-ts/issues"
   },
-  "homepage": "https://github.com/mayurrawte/searoute-ts#readme",
-  "author": "Mayur Rawte"
+  "homepage": "https://github.com/mayurrawte/searoute-ts#readme"
 }
