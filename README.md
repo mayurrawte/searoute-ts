@@ -20,7 +20,7 @@ const route = seaRoute([121.5, 31.0], [4.4, 51.9]);
 // Shanghai → Rotterdam → GeoJSON LineString, ~10,664 nm via Suez Canal
 ```
 
-**🗺️ [Try the interactive demo](./examples/web-demo)** — click two points on a map and see the route, with all options live.
+**🗺️ [Try the interactive demo](https://mayurrawte.github.io/searoute-ts/)** — click two points on a map and see the route, with all options live. ([source](./examples/web-demo))
 
 > Works from plain JavaScript too — the package ships compiled `.js` plus
 > `.d.ts` declarations. The `-ts` in the name is for searchability, not a
