@@ -86,25 +86,39 @@ export const PASSAGE_BBOXES: Record<Passage, Bbox[]> = {
   northeast: [[30.0, 68.0, 180.0, 82.0]],
 };
 
-function pointInBbox(p: Position, b: Bbox): boolean {
-  return p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3];
-}
-
 /**
- * Sample a few points along the edge a→b and check whether any falls inside
- * any of the supplied bboxes. Catches long edges that "jump" a narrow channel
- * without their midpoint being inside it.
+ * Exact segment-vs-bbox test (Liang–Barsky clip). A narrow strait bbox can
+ * sit entirely between two vertices of a long network edge, so sampling
+ * points along the edge is not enough — the Bosporus slips through a
+ * 5-sample grid, for instance. Degenerates to point-in-bbox when a === b.
  */
-export function edgeIntersectsAny(a: Position, b: Position, bboxes: Bbox[]): boolean {
-  const samples = 5;
-  for (let i = 0; i <= samples; i++) {
-    const t = i / samples;
-    const p: Position = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    for (const bb of bboxes) {
-      if (pointInBbox(p, bb)) return true;
+function segmentIntersectsBbox(a: Position, b: Position, bb: Bbox): boolean {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  let t0 = 0;
+  let t1 = 1;
+  const p = [-dx, dx, -dy, dy];
+  const q = [a[0] - bb[0], bb[2] - a[0], a[1] - bb[1], bb[3] - a[1]];
+  for (let i = 0; i < 4; i++) {
+    if (p[i] === 0) {
+      if (q[i] < 0) return false;
+    } else {
+      const r = q[i] / p[i];
+      if (p[i] < 0) {
+        if (r > t1) return false;
+        if (r > t0) t0 = r;
+      } else {
+        if (r < t0) return false;
+        if (r < t1) t1 = r;
+      }
     }
   }
-  return false;
+  return true;
+}
+
+/** True when the edge a→b passes through any of the supplied bboxes. */
+export function edgeIntersectsAny(a: Position, b: Position, bboxes: Bbox[]): boolean {
+  return bboxes.some((bb) => segmentIntersectsBbox(a, b, bb));
 }
 
 /**
@@ -155,10 +169,14 @@ export function passagesAlong(coords: Position[]): Passage[] {
     'northwest',
     'northeast',
   ];
-  for (const c of coords) {
+  for (let i = 0; i < coords.length; i++) {
+    // Test the segment to the next point (degenerate at the last coord) so
+    // straits crossed mid-edge are still reported.
+    const a = coords[i];
+    const b = coords[i + 1] ?? a;
     for (const name of REPORT_NAMES) {
       if (hit.has(name)) continue;
-      if (PASSAGE_BBOXES[name].some((bb) => pointInBbox(c, bb))) hit.add(name);
+      if (PASSAGE_BBOXES[name].some((bb) => segmentIntersectsBbox(a, b, bb))) hit.add(name);
     }
   }
   return Array.from(hit);

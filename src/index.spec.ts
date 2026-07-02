@@ -236,6 +236,22 @@ test('NoRouteError is exported', (t) => {
   t.is(new NoRouteError().name, 'NoRouteError');
 });
 
+test('throws NoRouteError when a restriction severs the only path', (t) => {
+  // The Bosporus is the Black Sea's only exit — blocking it strands Odessa.
+  const ODESSA = pt(30.72, 46.35);
+  t.throws(() => seaRoute(ODESSA, ROTTERDAM, { restrictions: ['bosporus'] }), {
+    instanceOf: NoRouteError,
+  });
+});
+
+test('returnPassages reports narrow straits crossed mid-edge (bosporus)', (t) => {
+  // The network edge through the Bosporus is long; its vertices sit outside
+  // the strait bbox, so detection must test the segment, not just the points.
+  const ODESSA = pt(30.72, 46.35);
+  const r = seaRoute(ODESSA, ROTTERDAM, { returnPassages: true });
+  t.true(r.properties.passages?.includes('bosporus'), `got: ${r.properties.passages}`);
+});
+
 // ── Properties: bbox, snap, great-circle, detour ────────────────────────────
 
 test('route properties include bbox, greatCircleLength, detourRatio, snap km', (t) => {
