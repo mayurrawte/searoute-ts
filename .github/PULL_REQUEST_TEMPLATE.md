@@ -1,7 +1,9 @@
-- **What kind of change does this PR introduce?** (Bug fix, feature, docs update, ...)
+**What does this PR do?**
 
-- **What is the current behavior?** (You can also link to an open issue here)
+<!-- Fixes #issue, adds feature X, corrects route Y… -->
 
-- **What is the new behavior (if this is a feature change)?**
+**Checklist**
 
-- **Other information**:
+- [ ] `npm run lint` and `npm test` pass
+- [ ] New behavior is covered by a test
+- [ ] CHANGELOG.md updated (user-visible changes only)
