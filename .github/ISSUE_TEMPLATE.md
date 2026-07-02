@@ -1,9 +1,21 @@
-- **I'm submitting a ...**
-  [ ] bug report
-  [ ] feature request
-  [ ] question about the decisions made in the repository
-  [ ] question about how to use this project
+**What happened?**
 
-- **Summary**
+<!-- A short description of the bug or request. -->
 
-- **Other information** (e.g. detailed explanation, stack traces, related issues, suggestions how to fix, links for us to have context, eg. StackOverflow, personal fork, etc.)
+**How to reproduce** (for routing bugs)
+
+```ts
+import { seaRoute } from 'searoute-ts';
+
+const route = seaRoute([lon1, lat1], [lon2, lat2], {
+  /* options you used */
+});
+```
+
+- Expected result (a distance, a passage, an error…):
+- Actual result:
+- searoute-ts version:
+- Runtime (Node version / browser / bundler):
+
+<!-- Tip: a share link from https://mayurrawte.github.io/searoute-ts/ encodes
+     the full route state and makes reproduction instant. -->

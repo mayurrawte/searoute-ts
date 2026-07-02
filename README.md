@@ -6,8 +6,9 @@
 
 [![npm version](https://img.shields.io/npm/v/searoute-ts.svg?style=flat)](https://www.npmjs.com/package/searoute-ts)
 [![npm downloads](https://img.shields.io/npm/dw/searoute-ts.svg?style=flat)](https://www.npmjs.com/package/searoute-ts)
-[![license](https://img.shields.io/npm/l/searoute-ts.svg?style=flat)](./LICENSE)
-[![types](https://img.shields.io/npm/types/searoute-ts.svg?style=flat)](./dist/types/index.d.ts)
+[![CI](https://github.com/mayurrawte/searoute-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/mayurrawte/searoute-ts/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/searoute-ts.svg?style=flat)](https://github.com/mayurrawte/searoute-ts/blob/main/LICENSE)
+[![types](https://img.shields.io/npm/types/searoute-ts.svg?style=flat)](https://www.npmjs.com/package/searoute-ts)
 
 ```bash
 npm install searoute-ts
@@ -20,7 +21,7 @@ const route = seaRoute([121.5, 31.0], [4.4, 51.9]);
 // Shanghai → Rotterdam → GeoJSON LineString, ~10,664 nm via Suez Canal
 ```
 
-**🗺️ [Try the interactive demo](https://mayurrawte.github.io/searoute-ts/)** — click two points on a map and see the route, with all options live. ([source](./examples/web-demo))
+**🗺️ [Try the interactive demo](https://mayurrawte.github.io/searoute-ts/)** — click two points on a map and see the route, with all options live. ([source](https://github.com/mayurrawte/searoute-ts/tree/main/examples/web-demo))
 
 > Works from plain JavaScript too — the package ships compiled `.js` plus
 > `.d.ts` declarations. The `-ts` in the name is for searchability, not a
@@ -191,7 +192,7 @@ many Asia ↔ Europe routes but are ice-blocked most of the year, so they are
 | Singapore → LA (trans-Pacific)    | 14 364 km   | ~14 300 km    |
 | Caldera (CL) → Bahía Blanca (AR)  |  4 810 km   | ~5 180 km     |
 
-All checks pass in the [test suite](./src/index.spec.ts).
+All checks pass in the [test suite](https://github.com/mayurrawte/searoute-ts/blob/main/src/index.spec.ts).
 
 ## Errors
 
@@ -227,7 +228,7 @@ import {
 ## How it works
 
 A two-page deep-dive (graph data, snapping, Dijkstra, restrictions,
-antimeridian fix, draft logic, alternatives) is in [DOCS.md](./DOCS.md).
+antimeridian fix, draft logic, alternatives) is in [DOCS.md](https://github.com/mayurrawte/searoute-ts/blob/main/DOCS.md).
 
 ## FAQ
 
