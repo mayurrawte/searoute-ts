@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Passage detection now uses an exact segment-vs-bbox intersection
+  (Liang–Barsky) instead of sampling 5 points along each network edge. Narrow
+  straits could slip between samples: `restrictions: ['bosporus']` silently
+  failed to block the Bosporus (the strait sits mid-way along a long network
+  edge), and `returnPassages` never reported it. Affects all bbox-detected
+  passages (`bosporus`, `ormuz`, `sunda`, `cape_horn`) and makes the labelled
+  ones more robust too.
+
+### Added
+- Tests: `NoRouteError` is actually thrown when restrictions sever the only
+  path (Odessa with the Bosporus blocked); `returnPassages` reports straits
+  crossed mid-edge.
+- CI: lint, format check, build, and tests on Node 18/20/22 for every push
+  and pull request.
+
+### Demo
+- Basemap switched from Carto (now rejects cross-origin tile requests) to
+  OpenStreetMap (#4).
+- Routes crossing the antimeridian (e.g. Yokohama → LA) no longer render as a
+  straight line across the map — longitudes are unwrapped before rendering (#5).
+
 ## 2.0.0 — 2026-05-14
 
 Major modernisation. Breaking changes; see migration notes below.
