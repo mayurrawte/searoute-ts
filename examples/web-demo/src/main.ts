@@ -7,25 +7,25 @@ import {
   SnapFailedError,
 } from 'searoute-ts';
 
+import { type LngLat, unwrapLine } from './geo.js';
 import { PRESETS, type Preset } from './presets.js';
 import { fmtCoord, readUrl, writeUrl, type UrlState } from './url-state.js';
 import './style.css';
 
 const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
+// OpenStreetMap raster tiles — the Carto basemaps started rejecting
+// cross-origin requests without an API key (issue #4).
 const MAP_STYLE = {
   version: 8 as const,
   sources: {
     basemap: {
       type: 'raster' as const,
-      tiles: [
-        isDark
-          ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
-          : 'https://a.basemaps.cartocdn.com/voyager/{z}/{x}/{y}@2x.png',
-      ],
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       tileSize: 256,
+      maxzoom: 19,
       attribution:
-        '© <a href="https://carto.com/attributions" target="_blank">CARTO</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+        '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     },
   },
   layers: [
@@ -33,6 +33,8 @@ const MAP_STYLE = {
       id: 'basemap',
       type: 'raster' as const,
       source: 'basemap',
+      // OSM only ships a light style; dim it a little when the UI is dark.
+      paint: isDark ? { 'raster-brightness-max': 0.8, 'raster-saturation': -0.25 } : {},
     },
   ],
 };
@@ -194,12 +196,15 @@ function recompute() {
 
 function drawRoute(route: SeaRouteFeature | undefined) {
   const src = map.getSource('route') as maplibregl.GeoJSONSource | undefined;
-  const data = (route ?? {
+  // Unwrap across the antimeridian so Pacific routes don't render as a
+  // straight line through the map seam (issue #5).
+  const coords = route ? unwrapLine(route.geometry.coordinates as LngLat[]) : [];
+  const data = {
     type: 'Feature',
-    geometry: { type: 'LineString', coordinates: [] },
-    properties: {},
+    geometry: { type: 'LineString', coordinates: coords },
+    properties: route?.properties ?? {},
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as any;
+  } as any;
 
   if (src) {
     src.setData(data);
@@ -230,8 +235,8 @@ function drawRoute(route: SeaRouteFeature | undefined) {
     });
   }
 
-  if (route && route.geometry.coordinates.length > 1) {
-    fitToCoords(route.geometry.coordinates as [number, number][]);
+  if (coords.length > 1) {
+    fitToCoords(coords);
   }
 }
 
