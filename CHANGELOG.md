@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.1 — 2026-07-02
 
 ### Fixed
 - Passage detection now uses an exact segment-vs-bbox intersection
