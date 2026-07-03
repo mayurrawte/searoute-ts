@@ -356,6 +356,59 @@ export function seaRouteAlternatives(
   });
 }
 
+/** Options for {@link loadNetwork}. */
+export type LoadNetworkOptions = {
+  /**
+   * Custom fetch implementation. Defaults to the global `fetch` (available on
+   * Node ≥18, which this package requires, and in all browsers). Pass one for
+   * older runtimes or to inject auth/proxy behaviour.
+   */
+  fetch?: typeof fetch;
+};
+
+/**
+ * Fetch a maritime network from a URL, for use with the `network` option.
+ *
+ * The bundled network (`DEFAULT_MARNET`) stays the default — this is purely
+ * opt-in, for consumers who prefer to fetch the network from a CDN/host (to
+ * trim their bundle, or to use an updated network without upgrading the
+ * package) instead of shipping the embedded copy. `seaRoute` itself remains
+ * synchronous and offline; only the network fetch is async.
+ *
+ * ```ts
+ * const network = await loadNetwork('https://mayurrawte.github.io/searoute-ts/marnet.json');
+ * const route = seaRoute(origin, destination, { network });
+ * ```
+ *
+ * @throws {Error} on a non-OK HTTP response, or when the payload is not a
+ *   GeoJSON `FeatureCollection`.
+ */
+export async function loadNetwork(
+  url: string,
+  options: LoadNetworkOptions = {},
+): Promise<MarnetNetwork> {
+  const doFetch = options.fetch ?? globalThis.fetch;
+  if (typeof doFetch !== 'function') {
+    throw new Error(
+      'loadNetwork: no fetch implementation available — pass options.fetch on runtimes without a global fetch',
+    );
+  }
+  const res = await doFetch(url);
+  if (!res.ok) {
+    throw new Error(`loadNetwork: failed to fetch ${url} (HTTP ${res.status})`);
+  }
+  const data = (await res.json()) as unknown;
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    (data as { type?: unknown }).type !== 'FeatureCollection' ||
+    !Array.isArray((data as { features?: unknown }).features)
+  ) {
+    throw new Error(`loadNetwork: ${url} is not a GeoJSON FeatureCollection`);
+  }
+  return data as MarnetNetwork;
+}
+
 // ── Internal helpers ────────────────────────────────────────────────────────
 
 function unitToKm(u: Units): number {

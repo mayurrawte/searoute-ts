@@ -4,6 +4,7 @@ import type { Feature, Point } from 'geojson';
 import {
   CANAL_MAX_DRAFT_M,
   clearFinderCache,
+  loadNetwork,
   NoRouteError,
   seaRoute,
   seaRouteAlternatives,
@@ -477,4 +478,62 @@ test('custom network option is honoured', (t) => {
   const r = seaRoute([-74, 40], [0, 51], { units: 'kilometers', network: customNet });
   t.is(r.geometry.coordinates.length, 3);
   t.true(r.properties.length > 5000 && r.properties.length < 8000);
+});
+
+// ── loadNetwork (optional remote/CDN loader) ────────────────────────────────
+
+const ATLANTIC_NET = {
+  type: 'FeatureCollection' as const,
+  features: [
+    {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: [
+          [-74, 40],
+          [-30, 45],
+          [0, 51],
+        ],
+      },
+    },
+  ],
+};
+
+function fakeResponse(body: unknown, init: { ok?: boolean; status?: number } = {}): Response {
+  return {
+    ok: init.ok ?? true,
+    status: init.status ?? 200,
+    json: async () => body,
+  } as unknown as Response;
+}
+
+test('loadNetwork fetches a network and returns it usable by seaRoute', async (t) => {
+  let requested = '';
+  const stub = (async (url: string) => {
+    requested = String(url);
+    return fakeResponse(ATLANTIC_NET);
+  }) as unknown as typeof fetch;
+
+  const network = await loadNetwork('https://cdn.example.com/marnet.json', { fetch: stub });
+
+  t.is(requested, 'https://cdn.example.com/marnet.json');
+  t.is(network.type, 'FeatureCollection');
+  const route = seaRoute([-74, 40], [0, 51], { units: 'kilometers', network });
+  t.is(route.geometry.coordinates.length, 3);
+});
+
+test('loadNetwork throws a clear error on a non-OK response', async (t) => {
+  const stub = (async () =>
+    fakeResponse({}, { ok: false, status: 404 })) as unknown as typeof fetch;
+  await t.throwsAsync(loadNetwork('https://cdn.example.com/missing.json', { fetch: stub }), {
+    message: /404/,
+  });
+});
+
+test('loadNetwork rejects payloads that are not a GeoJSON FeatureCollection', async (t) => {
+  const stub = (async () => fakeResponse({ type: 'Nope' })) as unknown as typeof fetch;
+  await t.throwsAsync(loadNetwork('https://cdn.example.com/bad.json', { fetch: stub }), {
+    message: /FeatureCollection/,
+  });
 });

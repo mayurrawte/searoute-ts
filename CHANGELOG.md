@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `loadNetwork(url, options?)` — optionally fetch the maritime network from a
+  URL (CDN/host) at runtime and pass it via the existing `network` option,
+  instead of using the bundled copy. Non-breaking: the bundled network stays
+  the default and `seaRoute` remains synchronous. The network is also published
+  as a CORS-enabled asset on the demo's GitHub Pages site
+  (`/searoute-ts/marnet.json`).
+
 ## 2.0.1 — 2026-07-02
 
 ### Fixed

@@ -110,6 +110,57 @@ const alts = seaRouteAlternatives(shanghai, rotterdam, { k: 4 });
 //  no-suez-no-panama  25 845 km (via Cape of Good Hope)
 ```
 
+### Fetch the network from a URL instead of bundling it (optional)
+
+The network is bundled by default, so `seaRoute` works offline with zero setup.
+If you'd rather **not** ship the ~1 MB network (e.g. to trim a browser bundle,
+or to use an updated network without upgrading the package), fetch it at
+runtime and pass it via the existing `network` option:
+
+```ts
+import { seaRoute, loadNetwork } from 'searoute-ts';
+
+// CORS-enabled, served from GitHub Pages (or point at your own host / a CDN).
+const network = await loadNetwork('https://mayurrawte.github.io/searoute-ts/marnet.json');
+
+const route = seaRoute(shanghai, rotterdam, { network });
+```
+
+Only the fetch is async — `seaRoute` itself stays synchronous. `loadNetwork`
+uses the global `fetch` (Node ≥18 and all browsers); pass `{ fetch }` to supply
+your own. This is purely opt-in; nothing changes if you don't use it.
+
+#### Which option should I use?
+
+| Approach | How | Data version | Works offline | Best for |
+|----------|-----|--------------|---------------|----------|
+| **Bundled** (default) | `seaRoute(a, b)` — no `network` | pinned to your installed package | ✅ | Most users; zero config, deterministic |
+| **Latest via URL** | `loadNetwork('…/marnet.json')` | always the newest hosted | ❌ needs network | Always-current data without upgrading |
+| **Pinned via CDN** | `loadNetwork('https://cdn.jsdelivr.net/npm/searoute-ts@2.0.1/…')` | frozen (immutable) | ❌ needs network | Reproducible builds |
+
+#### Versioning the hosted network
+
+You choose the version by choosing the **URL**:
+
+- **`@latest` / rolling** — the GitHub Pages URL above always serves the current
+  network. Convenient, but it can change under you.
+- **Pinned & immutable** — because the package is on npm, **jsDelivr** and
+  **unpkg** serve every published version automatically, with immutable
+  per-version URLs:
+
+  ```
+  https://cdn.jsdelivr.net/npm/searoute-ts@latest/dist/marnet.json   # newest
+  https://cdn.jsdelivr.net/npm/searoute-ts@2/dist/marnet.json        # newest 2.x
+  https://cdn.jsdelivr.net/npm/searoute-ts@2.0.1/dist/marnet.json    # frozen
+  ```
+
+  A pinned URL never changes, so your routes stay reproducible. (These
+  standalone-JSON CDN paths land with the package once the network ships as a
+  separate asset — see issue #10; until then, use the GitHub Pages URL.)
+
+For production, prefer a **pinned** URL (or just the bundled default) so your
+distances don't shift when the network is updated.
+
 ## Output shape
 
 ```ts
@@ -209,6 +260,7 @@ import {
   seaRoute,                  // single shortest route
   seaRouteMulti,             // ordered waypoints (multi-leg)
   seaRouteAlternatives,      // K-shortest alternatives
+  loadNetwork,               // optional: fetch a network from a URL/CDN
   CANAL_MAX_DRAFT_M,         // { panama: 15.2, suez: 20.1, kiel: 7, corinth: 7.3 }
   DEFAULT_MARNET,            // bundled FeatureCollection<LineString>
   PASSAGE_BBOXES,            // passage bbox lookup
@@ -220,6 +272,7 @@ import {
   type SeaRouteOptions,
   type SeaRouteFeature,
   type SeaRouteProperties,
+  type LoadNetworkOptions,
   type MarnetNetwork,
   type MarnetProperties,
 } from 'searoute-ts';
