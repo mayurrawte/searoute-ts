@@ -306,8 +306,10 @@ or AIS-derived custom graphs.
 marnet has been normalised so the Pacific is a connected graph, and all
 distances use haversine internally.
 
-**What's the bundle size?** 329 KB packed / 2.5 MB unpacked on npm. The
-bundled marnet is the bulk (~1.1 MB JSON per build). Tree-shakeable.
+**What's the bundle size?** ~184 KB packed / ~1.3 MB unpacked on npm. The
+bundled marnet is the bulk (~1.1 MB JSON). It ships once as a shared
+`dist/data/marnet.cjs` asset that both the CJS and ESM builds load at runtime,
+rather than being inlined into each build. Tree-shakeable.
 
 ## Credits
 

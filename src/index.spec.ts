@@ -4,6 +4,7 @@ import type { Feature, Point } from 'geojson';
 import {
   CANAL_MAX_DRAFT_M,
   clearFinderCache,
+  DEFAULT_MARNET,
   loadNetwork,
   NoRouteError,
   seaRoute,
@@ -452,6 +453,19 @@ test('seaRouteAlternatives filters near-duplicate-length routes', (t) => {
     similarityThreshold: 0.5, // very aggressive — should collapse to 1
   });
   t.is(alts.length, 1);
+});
+
+// ── Bundled network asset ────────────────────────────────────────────────────
+
+test('DEFAULT_MARNET loads the shared network asset', (t) => {
+  // The network no longer lives inlined in the compiled module; it is loaded at
+  // runtime from the single shared data/marnet.cjs asset. If that resolution
+  // ever breaks, DEFAULT_MARNET comes back empty (or the import throws).
+  t.is(DEFAULT_MARNET.type, 'FeatureCollection');
+  t.true(DEFAULT_MARNET.features.length > 9000);
+  t.true(DEFAULT_MARNET.features.every((f) => f.geometry.type === 'LineString'));
+  // The Eurostat network carries native `pass` labels on canal/strait edges.
+  t.true(DEFAULT_MARNET.features.some((f) => typeof f.properties?.pass === 'string'));
 });
 
 // ── Custom network ──────────────────────────────────────────────────────────

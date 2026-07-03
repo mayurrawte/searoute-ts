@@ -10,6 +10,12 @@
   as a CORS-enabled asset on the demo's GitHub Pages site
   (`/searoute-ts/marnet.json`).
 
+### Changed
+- The Eurostat network is no longer inlined into each build. It now ships once
+  as a single shared `dist/data/marnet.cjs` asset that both the CJS and ESM
+  builds load at runtime, roughly halving the published package size
+  (~329 KB → ~184 KB packed, ~2.5 MB → ~1.3 MB unpacked). No API change. (#10)
+
 ## 2.0.1 — 2026-07-02
 
 ### Fixed
@@ -128,9 +134,9 @@ see ~24% smaller numbers — they now match the geodesic length in nm correctly.
   (Shanghai-Rotterdam, NY-Rotterdam, Yokohama-LA, etc.) within ±10%.
 
 ### Known follow-ups
-- The marnet is inlined in the bundle (~1.1 MB per build, ~2.2 MB total
+- ~~The marnet is inlined in the bundle (~1.1 MB per build, ~2.2 MB total
   unpacked). Migrating to a single shared JSON asset is a non-breaking
-  follow-up and would roughly halve published size.
+  follow-up and would roughly halve published size.~~ Done in Unreleased (#10).
 - Multi-resolution networks (Eurostat ships 5 km / 10 km / 20 km / 50 km /
   100 km). Currently we only ship 100 km. Other resolutions could be loaded
   via a separate import path.
