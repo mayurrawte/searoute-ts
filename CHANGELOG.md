@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.0 — 2026-07-03
 
 ### Added
 - Port-code (UN/LOCODE) input: `seaRoute`, `seaRouteMulti` and
