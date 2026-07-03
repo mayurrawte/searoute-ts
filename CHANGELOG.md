@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 — 2026-07-03
 
 ### Added
 - `loadNetwork(url, options?)` — optionally fetch the maritime network from a

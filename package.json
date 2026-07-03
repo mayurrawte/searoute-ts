@@ -1,6 +1,6 @@
 {
   "name": "searoute-ts",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Shortest sea route between any two points on Earth. TypeScript library with the Eurostat 2025 maritime network, canal/strait restrictions (Suez, Panama, Bab-el-Mandeb…), vessel-draft gating, K-shortest alternatives, multi-leg waypoints, and ETA from vessel speed. Dual ESM/CJS, zero peer deps.",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
