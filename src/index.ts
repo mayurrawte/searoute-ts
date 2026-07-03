@@ -1,14 +1,21 @@
-import { feature as turfFeature, lineString, point as turfPoint } from '@turf/helpers';
+import {
+  feature as turfFeature,
+  lineString,
+  multiLineString,
+  point as turfPoint,
+} from '@turf/helpers';
 import type { Units } from '@turf/helpers';
 import length from '@turf/length';
-import type { Feature, LineString, Point, Position } from 'geojson';
+import type { Feature, LineString, MultiLineString, Point, Position } from 'geojson';
 
+import { type Antimeridian, splitAtAntimeridian, unwrapCoords } from './lib/antimeridian.js';
 import { passagesBlockedByDraft } from './lib/drafts.js';
 import { buildFinder, DEFAULT_MARNET, type MarnetNetwork } from './lib/finder.js';
 import { bboxOf, greatCircleKm } from './lib/metrics.js';
 import { type Passage, passagesAlong } from './lib/restrictions.js';
 import { snapToNetwork } from './lib/snap.js';
 
+export type { Antimeridian } from './lib/antimeridian.js';
 export type { Passage } from './lib/restrictions.js';
 export { PASSAGE_BBOXES } from './lib/restrictions.js';
 export type { MarnetProperties } from './lib/marnet.js';
@@ -77,6 +84,21 @@ export type SeaRouteOptions = {
    * `pass` string property on features for native passage restrictions.
    */
   network?: MarnetNetwork;
+  /**
+   * How to represent routes that cross the ±180° antimeridian (e.g. a
+   * trans-Pacific Yokohama → LA route). By default (`undefined`) the geometry
+   * is left wrapped to [-180, 180], which some map renderers draw as a straight
+   * streak across the whole map.
+   *
+   * - `'unwrap'` — one continuous `LineString`; longitudes are shifted by
+   *   multiples of 360° so the line never jumps the dateline (may exceed ±180°).
+   * - `'split'` — a `MultiLineString` cut at ±180°, keeping every coordinate
+   *   within ±180° (RFC 7946-friendly).
+   *
+   * Applies to `seaRoute` and `seaRouteMulti` output. `seaRouteAlternatives`
+   * always returns wrapped `LineString`s.
+   */
+  antimeridian?: Antimeridian;
 };
 
 export type SeaRouteProperties = {
@@ -103,6 +125,9 @@ export type SeaRouteProperties = {
 };
 
 export type SeaRouteFeature = Feature<LineString, SeaRouteProperties>;
+
+/** A route returned with `antimeridian: 'split'` — split into a MultiLineString. */
+export type SeaRouteMultiFeature = Feature<MultiLineString, SeaRouteProperties>;
 
 /** Thrown when no path exists between the snapped origin and destination. */
 export class NoRouteError extends Error {
@@ -142,8 +167,18 @@ function resolveRestrictions(options: SeaRouteOptions): Passage[] {
 export function seaRoute(
   origin: PointInput,
   destination: PointInput,
+  options: SeaRouteOptions & { antimeridian: 'split' },
+): SeaRouteMultiFeature;
+export function seaRoute(
+  origin: PointInput,
+  destination: PointInput,
+  unitsOrOptions?: Units | SeaRouteOptions,
+): SeaRouteFeature;
+export function seaRoute(
+  origin: PointInput,
+  destination: PointInput,
   unitsOrOptions: Units | SeaRouteOptions = 'nauticalmiles',
-): SeaRouteFeature {
+): SeaRouteFeature | SeaRouteMultiFeature {
   const options: SeaRouteOptions =
     typeof unitsOrOptions === 'string' ? { units: unitsOrOptions } : unitsOrOptions;
 
@@ -175,8 +210,7 @@ export function seaRoute(
   const lenKm = length(inWater, { units: 'kilometers' });
   const gcKm = greatCircleKm(originFeature.geometry.coordinates, destFeature.geometry.coordinates);
 
-  const ls = lineString(coords) as SeaRouteFeature;
-  ls.properties = {
+  const properties: SeaRouteProperties = {
     length: lenInUnits,
     units,
     bbox: bboxOf(inWaterCoords),
@@ -188,14 +222,14 @@ export function seaRoute(
 
   if (options.speedKnots && options.speedKnots > 0) {
     // 1 knot = 1.852 km/h
-    ls.properties.durationHours = lenKm / (options.speedKnots * 1.852);
+    properties.durationHours = lenKm / (options.speedKnots * 1.852);
   }
 
   if (options.returnPassages) {
-    ls.properties.passages = passagesAlong(result.path);
+    properties.passages = passagesAlong(result.path);
   }
 
-  return ls;
+  return buildRouteFeature(coords, properties, options.antimeridian);
 }
 
 /**
@@ -208,15 +242,23 @@ export function seaRoute(
  */
 export function seaRouteMulti(
   points: PointInput[],
+  options: SeaRouteOptions & { antimeridian: 'split' },
+): SeaRouteMultiFeature;
+export function seaRouteMulti(points: PointInput[], options?: SeaRouteOptions): SeaRouteFeature;
+export function seaRouteMulti(
+  points: PointInput[],
   options: SeaRouteOptions = {},
-): SeaRouteFeature {
+): SeaRouteFeature | SeaRouteMultiFeature {
   if (points.length < 2) {
     throw new Error('seaRouteMulti requires at least two waypoints');
   }
 
+  // Compute each leg as a plain wrapped LineString; the antimeridian option is
+  // applied once to the concatenated route so the legs still join cleanly.
+  const legOptions: SeaRouteOptions = { ...options, antimeridian: undefined };
   const legs: SeaRouteFeature[] = [];
   for (let i = 0; i < points.length - 1; i++) {
-    legs.push(seaRoute(points[i], points[i + 1], options));
+    legs.push(seaRoute(points[i], points[i + 1], legOptions));
   }
 
   // Concatenate legs without duplicating shared join vertices.
@@ -240,8 +282,7 @@ export function seaRouteMulti(
   }
   const totalKm = legs.reduce((s, l) => s + l.properties.length * unitToKm(l.properties.units), 0);
 
-  const ls = lineString(coords) as SeaRouteFeature;
-  ls.properties = {
+  const properties: SeaRouteProperties = {
     length: totalUnits,
     units,
     bbox: bboxOf(coords),
@@ -252,16 +293,16 @@ export function seaRouteMulti(
   };
 
   if (options.speedKnots && options.speedKnots > 0) {
-    ls.properties.durationHours = totalKm / (options.speedKnots * 1.852);
+    properties.durationHours = totalKm / (options.speedKnots * 1.852);
   }
 
   if (options.returnPassages) {
     const set = new Set<Passage>();
     for (const l of legs) for (const p of l.properties.passages ?? []) set.add(p);
-    ls.properties.passages = Array.from(set);
+    properties.passages = Array.from(set);
   }
 
-  return ls;
+  return buildRouteFeature(coords, properties, options.antimeridian);
 }
 
 export type SeaRouteAlternative = SeaRouteFeature & {
@@ -325,6 +366,10 @@ export function seaRouteAlternatives(
     try {
       const r = seaRoute(origin, destination, {
         ...options,
+        // Alternatives are compared and returned as wrapped LineStrings; the
+        // antimeridian representation is a per-route concern the caller can
+        // re-apply with seaRoute if needed.
+        antimeridian: undefined,
         restrictions: variantRestrictions,
         returnPassages: true,
       });
@@ -410,6 +455,28 @@ export async function loadNetwork(
 }
 
 // ── Internal helpers ────────────────────────────────────────────────────────
+
+/**
+ * Build the output feature from route coordinates, applying the antimeridian
+ * option: `'split'` yields a `MultiLineString` cut at ±180°, `'unwrap'` yields a
+ * continuous `LineString` (longitudes may exceed ±180°), and the default leaves
+ * the coordinates wrapped as computed.
+ */
+function buildRouteFeature(
+  coords: Position[],
+  properties: SeaRouteProperties,
+  antimeridian?: Antimeridian,
+): SeaRouteFeature | SeaRouteMultiFeature {
+  if (antimeridian === 'split') {
+    const ml = multiLineString(splitAtAntimeridian(coords)) as SeaRouteMultiFeature;
+    ml.properties = properties;
+    return ml;
+  }
+  const outCoords = antimeridian === 'unwrap' ? unwrapCoords(coords) : coords;
+  const ls = lineString(outCoords) as SeaRouteFeature;
+  ls.properties = properties;
+  return ls;
+}
 
 function unitToKm(u: Units): number {
   // Hard-code the conversions we care about; @turf doesn't export a helper.
