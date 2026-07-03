@@ -9,6 +9,12 @@
   the default and `seaRoute` remains synchronous. The network is also published
   as a CORS-enabled asset on the demo's GitHub Pages site
   (`/searoute-ts/marnet.json`).
+- `antimeridian` option on `seaRoute` / `seaRouteMulti` for map-ready output of
+  routes crossing the ±180° dateline. `'unwrap'` returns one continuous
+  `LineString` (longitudes may exceed ±180°, ideal for MapLibre/Leaflet/Deck.gl);
+  `'split'` returns a `MultiLineString` cut at ±180° (RFC 7946-friendly). Default
+  is unchanged (wrapped `LineString`). New `Antimeridian` and
+  `SeaRouteMultiFeature` exports. (#9)
 
 ### Changed
 - The Eurostat network is no longer inlined into each build. It now ships once

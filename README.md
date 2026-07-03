@@ -194,10 +194,27 @@ seaRoute(origin, destination, {
   returnPassages:          true,                     // populate properties.passages
   maxSnapDistanceKm:       50,                       // SnapFailedError if exceeded
   network:                 customMarnet,             // BYO FeatureCollection
+  antimeridian:            'split',                  // 'unwrap' | 'split' dateline handling
 });
 ```
 
 Inputs can be `[lon, lat]` arrays, GeoJSON `Feature<Point>`, or bare `Point` objects.
+
+### Antimeridian (dateline) handling
+
+Routes that cross the ±180° meridian (e.g. Yokohama → LA) come back wrapped to
+`[-180, 180]` by default, which many map renderers draw as a straight streak
+across the whole map. Pass `antimeridian` to get map-ready geometry:
+
+```ts
+seaRoute(yokohama, la, { antimeridian: 'unwrap' }); // continuous LineString (may exceed ±180)
+seaRoute(yokohama, la, { antimeridian: 'split' });  // MultiLineString cut at ±180 (RFC 7946)
+```
+
+`'unwrap'` shifts longitudes by multiples of 360° so the line never jumps the
+dateline (ideal for MapLibre/Leaflet/Deck.gl). `'split'` cuts the route into a
+`MultiLineString` at ±180°, keeping every coordinate in range. Both apply to
+`seaRoute` and `seaRouteMulti`; `properties.length` is unchanged either way.
 
 ## Restrictable passages
 
@@ -269,8 +286,10 @@ import {
   NoRouteError,
   // types
   type Passage,
+  type Antimeridian,
   type SeaRouteOptions,
   type SeaRouteFeature,
+  type SeaRouteMultiFeature,
   type SeaRouteProperties,
   type LoadNetworkOptions,
   type MarnetNetwork,

@@ -467,6 +467,92 @@ test('DEFAULT_MARNET loads the shared network asset', (t) => {
   // The Eurostat network carries native `pass` labels on canal/strait edges.
   t.true(DEFAULT_MARNET.features.some((f) => typeof f.properties?.pass === 'string'));
 });
+// ── Antimeridian output ──────────────────────────────────────────────────────
+
+function maxLonJump(coords: number[][]): number {
+  let max = 0;
+  for (let i = 1; i < coords.length; i++) {
+    max = Math.max(max, Math.abs(coords[i][0] - coords[i - 1][0]));
+  }
+  return max;
+}
+
+test('default output leaves a trans-Pacific route wrapped (big longitude jump)', (t) => {
+  const r = seaRoute(YOKOHAMA, LA, { units: 'kilometers' });
+  t.is(r.geometry.type, 'LineString');
+  // Wrapped to [-180, 180] it jumps ~360° across the dateline mid-Pacific.
+  t.true(maxLonJump(r.geometry.coordinates) > 300);
+});
+
+test("antimeridian 'unwrap' keeps a continuous LineString across the dateline", (t) => {
+  const def = seaRoute(YOKOHAMA, LA, { units: 'kilometers' });
+  const r = seaRoute(YOKOHAMA, LA, { units: 'kilometers', antimeridian: 'unwrap' });
+  t.is(r.geometry.type, 'LineString');
+  // No consecutive step jumps the dateline any more.
+  t.true(maxLonJump(r.geometry.coordinates) < 180);
+  // Some longitude runs past +180 (unwrapped continuation of the Pacific).
+  t.true(r.geometry.coordinates.some((c) => c[0] > 180));
+  // Same point count and latitudes; same computed length.
+  t.is(r.geometry.coordinates.length, def.geometry.coordinates.length);
+  t.deepEqual(
+    r.geometry.coordinates.map((c) => c[1]),
+    def.geometry.coordinates.map((c) => c[1]),
+  );
+  t.is(Math.round(r.properties.length), Math.round(def.properties.length));
+});
+
+test("antimeridian 'split' returns a MultiLineString cut at ±180°", (t) => {
+  const def = seaRoute(YOKOHAMA, LA, { units: 'kilometers' });
+  const r = seaRoute(YOKOHAMA, LA, { units: 'kilometers', antimeridian: 'split' });
+  t.is(r.geometry.type, 'MultiLineString');
+  const parts = r.geometry.coordinates;
+  t.true(parts.length >= 2, 'a trans-Pacific route splits into at least two parts');
+
+  for (const part of parts) {
+    for (const [lon] of part) t.true(Math.abs(lon) <= 180 + 1e-9, `lon ${lon} within ±180`);
+    t.true(maxLonJump(part) < 180, 'no part jumps the dateline internally');
+  }
+
+  // Each cut meets the dateline at ±180° with a shared latitude.
+  for (let i = 0; i < parts.length - 1; i++) {
+    const end = parts[i][parts[i].length - 1];
+    const start = parts[i + 1][0];
+    t.is(Math.abs(end[0]), 180);
+    t.is(Math.abs(start[0]), 180);
+    t.true(Math.abs(end[1] - start[1]) < 1e-9, 'cut latitude is continuous');
+  }
+
+  // The representation change does not alter the computed length.
+  t.is(Math.round(r.properties.length), Math.round(def.properties.length));
+});
+
+test('antimeridian options do not affect a route that never crosses the dateline', (t) => {
+  const def = seaRoute(NYC, LONDON, { units: 'kilometers' });
+  const unwrapped = seaRoute(NYC, LONDON, { units: 'kilometers', antimeridian: 'unwrap' });
+  t.deepEqual(unwrapped.geometry.coordinates, def.geometry.coordinates);
+
+  const split = seaRoute(NYC, LONDON, { units: 'kilometers', antimeridian: 'split' });
+  t.is(split.geometry.type, 'MultiLineString');
+  t.is(split.geometry.coordinates.length, 1);
+  t.deepEqual(split.geometry.coordinates[0], def.geometry.coordinates);
+});
+
+test('seaRouteMulti honours antimeridian: split across legs', (t) => {
+  const r = seaRouteMulti([YOKOHAMA, LA, NYC], { units: 'kilometers', antimeridian: 'split' });
+  t.is(r.geometry.type, 'MultiLineString');
+  t.true(r.geometry.coordinates.length >= 2);
+  for (const part of r.geometry.coordinates) {
+    for (const [lon] of part) t.true(Math.abs(lon) <= 180 + 1e-9);
+  }
+});
+
+test('seaRouteAlternatives ignores antimeridian and returns LineStrings', (t) => {
+  const alts = seaRouteAlternatives(YOKOHAMA, LA, {
+    units: 'kilometers',
+    antimeridian: 'split',
+  });
+  for (const a of alts) t.is(a.geometry.type, 'LineString');
+});
 
 // ── Custom network ──────────────────────────────────────────────────────────
 

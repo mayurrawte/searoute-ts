@@ -28,6 +28,8 @@ A common bug in maritime networks stored in `[-180, 180]` lon/lat space is that 
 
 At data-conversion time, every vertex with `lon === 180` is rewritten to `lon === -180`. Now both sides converge to a single graph vertex. The edge-weight function uses haversine distance, which is correct across the antimeridian, so route lengths stay accurate.
 
+A consequence is that a route which crosses the Pacific comes back wrapped to `[-180, 180]`, so a segment can jump from `+179` to `-179`. Renderers that draw straight lines between vertices then streak a route across the whole map. Pass the `antimeridian` option to fix the *output* geometry: `'unwrap'` shifts longitudes by multiples of 360° into one continuous `LineString`, and `'split'` cuts the route into a `MultiLineString` at ±180°. The default leaves the geometry wrapped (no change). Route length is unaffected — it is computed from the geodesic path before any representation change.
+
 ### Other resolutions
 
 Eurostat ships 5 km / 10 km / 20 km / 50 km / 100 km networks. We bundle only 100 km to keep the package small. For higher resolution, use the `network` option — see [Custom networks](#custom-networks).
