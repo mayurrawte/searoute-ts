@@ -48,6 +48,10 @@ Two side-effects:
 - `properties.originSnapKm` and `properties.destinationSnapKm` report how far the inputs moved when snapped. Useful for debugging routes that look "off" — if `originSnapKm` is 600 km, your input was nowhere near the sea.
 - The `maxSnapDistanceKm` option throws `SnapFailedError` if the input is further than the threshold. Without it, a typo'd coordinate in the middle of a continent silently snaps to the nearest coast.
 
+### Port-code input (UN/LOCODE)
+
+An origin or destination can be a UN/LOCODE string (e.g. `'CNSHA'`). Because the port dataset would bloat the core, it ships behind the `searoute-ts/ports` subpath export; importing that module registers a resolver into the core (or supply your own via `registerPortResolver`). A string input is resolved to `[lon, lat]` first, then follows the same snapping path as a coordinate. Codes are matched case-insensitively with whitespace stripped; unknown codes throw `UnknownPortError`. The dataset (~1 600 seaports) comes from [marchah/sea-ports](https://github.com/marchah/sea-ports) (MIT), derived from UN/LOCODE — see `scripts/build-ports.cjs`.
+
 ---
 
 ## 3. Shortest path
@@ -175,7 +179,7 @@ The finder cache is keyed by network identity, so swapping networks at runtime w
 
 - **Navigation.** Routes are graph paths, not great-circle or rhumb-line tracks. Don't sail them.
 - **Weather-aware.** No wave height, currents, ice forecasts, or seasonal variation. The Northwest/Northeast Passages are gated by `allowArctic`, not by an ice model. For weather routing see [VISIR-2](https://gmd.copernicus.org/articles/17/4355/2024/).
-- **Port-aware.** No port database, ETAs, or berth selection. Routes terminate at the nearest network vertex to the input coordinates.
+- **Port-aware.** UN/LOCODE strings are accepted as input (via `searoute-ts/ports`) and resolved to coordinates, but there are no ETAs, berth selection, or terminal-level detail. Routes terminate at the nearest network vertex to the (resolved) input coordinates.
 - **Emissions-grade.** Duration estimates assume constant speed in calm water. For CO₂ accounting see [searoutes.com](https://searoutes.com/co2-api/) or implement your own model on top of the duration.
 
 ---

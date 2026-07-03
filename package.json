@@ -11,9 +11,16 @@
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
     },
+    "./ports": {
+      "types": "./dist/types/ports/index.d.ts",
+      "import": "./dist/esm/ports/index.js",
+      "require": "./dist/cjs/ports/index.js"
+    },
     "./package.json": "./package.json"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "**/ports/index.js"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mayurrawte/searoute-ts.git"
@@ -53,7 +60,7 @@
   ],
   "scripts": {
     "clean": "rm -rf dist build coverage",
-    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:types && node scripts/fixup-cjs.cjs && node scripts/copy-marnet.cjs dist",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:types && node scripts/fixup-cjs.cjs && node scripts/copy-marnet.cjs dist && node scripts/emit-ports-json.cjs",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:types": "tsc -p tsconfig.types.json",

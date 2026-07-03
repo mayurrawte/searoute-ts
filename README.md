@@ -86,6 +86,56 @@ seaRoute(shanghai, newYork, {
 // → Panama auto-blocked, route goes via Suez
 ```
 
+### Port codes (UN/LOCODE)
+
+```ts
+import 'searoute-ts/ports'; // enables UN/LOCODE strings on the core API
+import { seaRoute } from 'searoute-ts';
+
+seaRoute('CNSHA', 'NLRTM'); // Shanghai → Rotterdam
+seaRoute('CNSHA', [4.4, 51.9]); // mixing a code and coordinates is fine too
+```
+
+The ~1 600-port dataset lives behind the `searoute-ts/ports` subpath so the core
+stays lean — importing it registers the resolver. You can also resolve codes
+yourself:
+
+```ts
+import { lookupPort, resolvePort } from 'searoute-ts/ports';
+
+lookupPort('SGSIN'); // → { code, name: 'Singapore', country, coordinates: [lon, lat] }
+resolvePort('SGSIN'); // → [103.85, 1.28]
+```
+
+Unknown codes throw `UnknownPortError`. See [Port codes](#port-codes-unlocode-1) below for provenance.
+
+#### Load the port dataset from a CDN instead of bundling it
+
+Don't want to bundle the ~135 KB dataset? Fetch it at runtime with `loadPorts` —
+the analog of [`loadNetwork`](#fetch-the-network-from-a-url-instead-of-bundling-it-optional).
+The dataset also ships as a raw `dist/ports.json`, so **jsDelivr/unpkg serve it
+versioned for free**:
+
+```ts
+import { seaRoute, loadPorts } from 'searoute-ts';
+
+// Pin a version for reproducibility, or use @latest to always get the newest.
+await loadPorts('https://cdn.jsdelivr.net/npm/searoute-ts@latest/dist/ports.json');
+
+seaRoute('CNSHA', 'NLRTM'); // works — the fetched dataset is now registered
+```
+
+```
+https://cdn.jsdelivr.net/npm/searoute-ts@latest/dist/ports.json      # newest
+https://cdn.jsdelivr.net/npm/searoute-ts@<version>/dist/ports.json   # frozen/immutable
+```
+
+(`dist/ports.json` ships from the release that adds port codes onward — pin any
+version at or after it for reproducibility.)
+
+`loadPorts` registers the fetched dataset (so code strings resolve) and returns
+it. It uses the global `fetch` (Node ≥18 / browsers); pass `{ fetch }` to override.
+
 ### Multi-leg / port rotation
 
 ```ts
@@ -198,7 +248,8 @@ seaRoute(origin, destination, {
 });
 ```
 
-Inputs can be `[lon, lat]` arrays, GeoJSON `Feature<Point>`, or bare `Point` objects.
+Inputs can be `[lon, lat]` arrays, GeoJSON `Feature<Point>`, bare `Point` objects,
+or a UN/LOCODE string (e.g. `'CNSHA'`) once `searoute-ts/ports` is imported.
 
 ### Antimeridian (dateline) handling
 
@@ -284,6 +335,8 @@ import {
   clearFinderCache,          // drop the PathFinder cache (tests / hot reload)
   SnapFailedError,
   NoRouteError,
+  UnknownPortError,          // thrown for unresolved UN/LOCODE strings
+  registerPortResolver,      // plug in a custom port dataset
   // types
   type Passage,
   type Antimeridian,
@@ -295,7 +348,31 @@ import {
   type MarnetNetwork,
   type MarnetProperties,
 } from 'searoute-ts';
+
+import {
+  lookupPort,                // UN/LOCODE → { code, name, country, coordinates }
+  resolvePort,               // UN/LOCODE → [lon, lat]
+  PORTS,                     // the raw dataset (Record<code, PortRecord>)
+  PORT_COUNT,
+  type Port,
+  type PortRecord,
+} from 'searoute-ts/ports';
 ```
+
+## Port codes (UN/LOCODE)
+
+Origins and destinations may be given as UN/LOCODE strings (e.g. `'CNSHA'`)
+instead of coordinates. The port dataset ships behind the `searoute-ts/ports`
+subpath export, so consumers only pay for it if they use it — importing the
+subpath (for any of its exports, or purely for its side effect) registers a
+resolver into the core so `seaRoute('CNSHA', 'NLRTM')` works.
+
+- **~1 600 seaports**, keyed by UN/LOCODE (primary codes and aliases).
+- **Source:** [marchah/sea-ports](https://github.com/marchah/sea-ports) (MIT),
+  itself derived from **UN/LOCODE**. Regenerate with `scripts/build-ports.cjs`.
+- **Coordinates are approximate** (port-city granularity) — the routing engine
+  snaps them onto the network anyway, so this is fine for distance/visualisation.
+- Unknown or malformed codes throw `UnknownPortError`.
 
 ## How it works
 
