@@ -53,7 +53,7 @@
   ],
   "scripts": {
     "clean": "rm -rf dist build coverage",
-    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:types && node scripts/fixup-cjs.cjs",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:types && node scripts/fixup-cjs.cjs && node scripts/copy-marnet.cjs dist",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:types": "tsc -p tsconfig.types.json",
@@ -62,7 +62,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,json}\"",
     "test": "npm run build:test && ava",
     "test:unit": "ava",
-    "build:test": "tsc -p tsconfig.test.json",
+    "build:test": "tsc -p tsconfig.test.json && node scripts/copy-marnet.cjs build",
     "prepublishOnly": "npm run lint && npm run test"
   },
   "engines": {
