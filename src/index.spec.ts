@@ -31,6 +31,16 @@ const SYDNEY = pt(151.2, -33.9);
 const VANCOUVER = pt(-123.1, 49.3);
 const MUMBAI = pt(72.9, 19.0);
 const LISBON = pt(-9.14, 38.7);
+const DOVER_STRAIT_WEST = pt(1.45, 50.94);
+const DOVER_STRAIT_EAST = pt(2.2, 51.34);
+const BARCELONA = pt(2.1734, 41.3851);
+const MARSEILLE = pt(5.3698, 43.2965);
+const SHANGHAI_OUTER = pt(121.545763, 31.254191);
+const KYUSHU = pt(130.392684, 33.628909);
+const ANGOLA_COAST = pt(12.33596, -6.11957);
+const CONGO_COAST = pt(11.881, -4.893);
+const WEST_MED_EDGE_NORTH = pt(5.63, 40.76);
+const WEST_MED_EDGE_SOUTH = pt(5.29, 40.04);
 
 test.beforeEach(() => clearFinderCache());
 
@@ -99,6 +109,22 @@ const expect = (
   t.true(len >= loKm && len <= hiKm, `${label}: ${len.toFixed(0)} km not in [${loKm}, ${hiKm}]`);
 };
 
+const expectShortRoute = (
+  t: import('ava').ExecutionContext,
+  label: string,
+  origin: Feature<Point>,
+  dest: Feature<Point>,
+  opts: Parameters<typeof seaRoute>[2],
+  loKm: number,
+  hiKm: number,
+): ReturnType<typeof seaRoute> => {
+  const route = seaRoute(origin, dest, { units: 'kilometers', ...(opts as object) });
+  const len = route.properties.length;
+  t.true(len > 0, `${label}: expected a non-zero route length`);
+  t.true(len >= loKm && len <= hiKm, `${label}: ${len.toFixed(0)} km not in [${loKm}, ${hiKm}]`);
+  return route;
+};
+
 test('Shanghai → Rotterdam ≈ 19 000–21 000 km via Suez (default)', (t) => {
   expect(t, 'Shanghai-Rotterdam', SHANGHAI, ROTTERDAM, {}, 19000, 21000);
 });
@@ -137,6 +163,64 @@ test('Singapore → LA ≈ 14 000–15 000 km via Panama', (t) => {
 
 test('NY → LA ≈ 8 500–9 500 km via Panama', (t) => {
   expect(t, 'NY-LA', NYC, LA, {}, 8500, 9500);
+});
+
+// ── Short-hop regression checks ─────────────────────────────────────────────
+
+test('Dover Strait edge short hop stays on the labelled crossing', (t) => {
+  const route = expectShortRoute(
+    t,
+    'Dover Strait edge',
+    DOVER_STRAIT_WEST,
+    DOVER_STRAIT_EAST,
+    { returnPassages: true },
+    50,
+    90,
+  );
+  t.true(route.properties.passages?.includes('dover'), 'should traverse the Dover passage');
+  t.true(route.properties.originSnapKm < 5);
+  t.true(route.properties.destinationSnapKm < 5);
+});
+
+test('Barcelona → Marseille returns a bounded intra-Mediterranean route', (t) => {
+  const route = expectShortRoute(t, 'Barcelona-Marseille', BARCELONA, MARSEILLE, {}, 300, 450);
+  t.true(route.properties.detourRatio > 1.0 && route.properties.detourRatio < 1.25);
+  const [minLon, minLat, maxLon, maxLat] = route.properties.bbox;
+  t.true(minLon >= 2 && maxLon <= 6, `bbox lon ${minLon}..${maxLon} should stay in west Med`);
+  t.true(minLat >= 40 && maxLat <= 44, `bbox lat ${minLat}..${maxLat} should stay in west Med`);
+});
+
+test('same-edge short hop returns a non-zero route instead of collapsing', (t) => {
+  const route = expectShortRoute(
+    t,
+    'same-edge west Mediterranean',
+    WEST_MED_EDGE_NORTH,
+    WEST_MED_EDGE_SOUTH,
+    {},
+    70,
+    100,
+  );
+  t.is(route.geometry.coordinates.length, 2);
+  t.true(route.properties.detourRatio > 0.95 && route.properties.detourRatio < 1.05);
+  t.true(route.properties.originSnapKm < 1);
+  t.true(route.properties.destinationSnapKm < 1);
+});
+
+test('Shanghai → Kyushu stays in the East China Sea corridor', (t) => {
+  const route = expectShortRoute(t, 'Shanghai-Kyushu', SHANGHAI_OUTER, KYUSHU, {}, 800, 1050);
+  t.true(route.properties.detourRatio > 1.0 && route.properties.detourRatio < 1.2);
+  t.true(route.properties.originSnapKm < 20);
+  t.true(route.properties.destinationSnapKm < 100);
+  const [minLon, minLat, maxLon, maxLat] = route.properties.bbox;
+  t.true(minLon >= 121 && maxLon <= 131, `bbox lon ${minLon}..${maxLon} jumped out of corridor`);
+  t.true(minLat >= 30 && maxLat <= 35, `bbox lat ${minLat}..${maxLat} jumped out of corridor`);
+});
+
+test('linked Angola → Congo coastal short hop returns a plausible non-zero route', (t) => {
+  const route = expectShortRoute(t, 'Angola-Congo coast', ANGOLA_COAST, CONGO_COAST, {}, 150, 230);
+  t.true(route.properties.detourRatio > 1.0 && route.properties.detourRatio < 1.5);
+  t.true(route.properties.originSnapKm < 25);
+  t.true(route.properties.destinationSnapKm < 25);
 });
 
 // ── Restrictions ────────────────────────────────────────────────────────────
