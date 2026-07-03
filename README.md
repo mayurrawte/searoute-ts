@@ -110,6 +110,26 @@ const alts = seaRouteAlternatives(shanghai, rotterdam, { k: 4 });
 //  no-suez-no-panama  25 845 km (via Cape of Good Hope)
 ```
 
+### Fetch the network from a URL instead of bundling it (optional)
+
+The network is bundled by default, so `seaRoute` works offline with zero setup.
+If you'd rather **not** ship the ~1 MB network (e.g. to trim a browser bundle,
+or to use an updated network without upgrading the package), fetch it at
+runtime and pass it via the existing `network` option:
+
+```ts
+import { seaRoute, loadNetwork } from 'searoute-ts';
+
+// CORS-enabled, served from GitHub Pages (or point at your own host / a CDN).
+const network = await loadNetwork('https://mayurrawte.github.io/searoute-ts/marnet.json');
+
+const route = seaRoute(shanghai, rotterdam, { network });
+```
+
+Only the fetch is async — `seaRoute` itself stays synchronous. `loadNetwork`
+uses the global `fetch` (Node ≥18 and all browsers); pass `{ fetch }` to supply
+your own. This is purely opt-in; nothing changes if you don't use it.
+
 ## Output shape
 
 ```ts
@@ -209,6 +229,7 @@ import {
   seaRoute,                  // single shortest route
   seaRouteMulti,             // ordered waypoints (multi-leg)
   seaRouteAlternatives,      // K-shortest alternatives
+  loadNetwork,               // optional: fetch a network from a URL/CDN
   CANAL_MAX_DRAFT_M,         // { panama: 15.2, suez: 20.1, kiel: 7, corinth: 7.3 }
   DEFAULT_MARNET,            // bundled FeatureCollection<LineString>
   PASSAGE_BBOXES,            // passage bbox lookup
@@ -220,6 +241,7 @@ import {
   type SeaRouteOptions,
   type SeaRouteFeature,
   type SeaRouteProperties,
+  type LoadNetworkOptions,
   type MarnetNetwork,
   type MarnetProperties,
 } from 'searoute-ts';
