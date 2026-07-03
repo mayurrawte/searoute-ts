@@ -11,6 +11,7 @@ import {
   seaRouteAlternatives,
   seaRouteMulti,
   SnapFailedError,
+  UnknownPortError,
 } from './index';
 
 function pt(lon: number, lat: number): Feature<Point> {
@@ -552,6 +553,15 @@ test('seaRouteAlternatives ignores antimeridian and returns LineStrings', (t) =>
     antimeridian: 'split',
   });
   for (const a of alts) t.is(a.geometry.type, 'LineString');
+});
+// ── Port codes (core, without the dataset) ──────────────────────────────────
+
+test('a UN/LOCODE string throws UnknownPortError when no dataset is registered', (t) => {
+  // The core does not bundle the port dataset; without importing
+  // 'searoute-ts/ports', a string origin/destination cannot be resolved.
+  const err = t.throws(() => seaRoute('CNSHA', 'NLRTM'), { instanceOf: UnknownPortError });
+  t.is(err?.code, 'CNSHA');
+  t.regex(err!.message, /searoute-ts\/ports/);
 });
 
 // ── Custom network ──────────────────────────────────────────────────────────

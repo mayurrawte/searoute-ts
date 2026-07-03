@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Port-code (UN/LOCODE) input: `seaRoute`, `seaRouteMulti` and
+  `seaRouteAlternatives` accept a code string (e.g. `seaRoute('CNSHA', 'NLRTM')`)
+  anywhere a point is accepted, mixable with coordinates. The ~1 600-port dataset
+  ships behind the new `searoute-ts/ports` subpath export (source:
+  [marchah/sea-ports](https://github.com/marchah/sea-ports), MIT, based on
+  UN/LOCODE), so the core stays lean — importing the subpath registers the
+  resolver. New `searoute-ts/ports` exports `lookupPort`, `resolvePort`, `PORTS`,
+  `PORT_COUNT`, `Port`, `PortRecord`; the core adds `UnknownPortError`,
+  `registerPortResolver` and a `PortResolver` type. Unknown codes throw
+  `UnknownPortError`. (#7)
+- `loadPorts(url, options?)` — optionally fetch the UN/LOCODE port dataset from a
+  URL/CDN at runtime and register it, enabling `seaRoute('CNSHA', 'NLRTM')`
+  without bundling the `searoute-ts/ports` dataset. The dataset also ships as a
+  raw `dist/ports.json`, so it is served versioned by jsDelivr/unpkg
+  (`https://cdn.jsdelivr.net/npm/searoute-ts@latest/dist/ports.json`). Uses the
+  global `fetch`; pass `{ fetch }` to override. (#7)
+
 ## 2.1.0 — 2026-07-03
 
 ### Added

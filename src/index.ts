@@ -12,6 +12,7 @@ import { type Antimeridian, splitAtAntimeridian, unwrapCoords } from './lib/anti
 import { passagesBlockedByDraft } from './lib/drafts.js';
 import { buildFinder, DEFAULT_MARNET, type MarnetNetwork } from './lib/finder.js';
 import { bboxOf, greatCircleKm } from './lib/metrics.js';
+import { resolvePortCode } from './lib/ports.js';
 import { type Passage, passagesAlong } from './lib/restrictions.js';
 import { snapToNetwork } from './lib/snap.js';
 
@@ -23,9 +24,22 @@ export type { MarnetNetwork } from './lib/finder.js';
 export { DEFAULT_MARNET, clearFinderCache } from './lib/finder.js';
 export { SnapFailedError } from './lib/snap.js';
 export { CANAL_MAX_DRAFT_M } from './lib/drafts.js';
+export {
+  UnknownPortError,
+  registerPortResolver,
+  loadPorts,
+  type PortResolver,
+  type PortDataset,
+  type LoadPortsOptions,
+} from './lib/ports.js';
 
-/** Input accepted as origin/destination. */
-export type PointInput = Position | Feature<Point> | Point;
+/**
+ * Input accepted as origin/destination. A `string` is treated as a UN/LOCODE
+ * port code (e.g. `'CNSHA'`); resolving codes requires importing the
+ * `searoute-ts/ports` subpath (or registering a resolver via
+ * `registerPortResolver`).
+ */
+export type PointInput = Position | Feature<Point> | Point | string;
 
 export type SeaRouteOptions = {
   /** Output unit for `properties.length`. Defaults to nautical miles. */
@@ -138,6 +152,7 @@ export class NoRouteError extends Error {
 }
 
 function toFeaturePoint(input: PointInput): Feature<Point> {
+  if (typeof input === 'string') return turfPoint(resolvePortCode(input));
   if (Array.isArray(input)) return turfPoint(input);
   if ('geometry' in input) return input as Feature<Point>;
   return turfFeature(input as Point) as Feature<Point>;
