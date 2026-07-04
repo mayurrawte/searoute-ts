@@ -133,8 +133,18 @@ Once the LineString is built, properties are computed:
 - `originSnapKm`, `destinationSnapKm` — how far the inputs were from the snapped vertex.
 - `durationHours` — `routeLengthKm / (speedKnots × 1.852)` when `speedKnots > 0`.
 - `passages` — when `returnPassages: true`, lists the named passages whose bboxes contain at least one route coordinate.
+- `ecaKm` / `ecaFraction` / `co2eTonnes` — when `emissions: true` (see below).
 
 The `length` is always measured on the **in-water** portion only. If you set `appendOriginDestination: true`, the LineString has the raw origin and destination prepended/appended, but `length` stays in-water — so it's stable across that toggle.
+
+### Emissions & ECA/SECA (opt-in)
+
+Setting `emissions: true` fills in two independent, deliberately rough estimates:
+
+- **`ecaKm` / `ecaFraction`** — kilometres of the in-water route inside ECA/SECA emission-control zones, and that as a fraction of `length`. This reuses the same idea as bbox passage detection: each route segment is subdivided into ~5 km steps and a step counts as in-zone when its midpoint falls inside any zone bbox. The zones themselves ship behind the `searoute-ts/eca` subpath export (so the core stays lean, per #10); importing it calls `registerEcaZones` with the defaults. Those defaults are **bounding-box approximations** of the IMO MARPOL Annex VI areas (Baltic, North Sea + Channel, Mediterranean, North American Pacific/Atlantic/Gulf, US Caribbean) — fine for a rough figure, not authoritative boundaries. The North American and US Caribbean ECAs really follow a 200 nm offset from the baseline; here they are coarse coastal envelopes. Replace all of them with full polygons via `registerEcaZones(zones)`.
+- **`co2eTonnes`** — a rough `distanceKm × factor` estimate, only when a `vesselClass` (see `VESSEL_CLASSES`) or an explicit `co2eFactorKgPerKm` is given. Per-class factors are derived transparently as `fuelTonnesPerDay × 3.114 (IMO HFO Cf) × 1000 / (24 × serviceSpeedKnots × 1.852)`, i.e. kg CO₂e per km. It is an order-of-magnitude estimate, **not** a certified figure. `glecInflation` (e.g. `0.15`) inflates the distance used for CO₂e to allow for real-world deviation from the shortest path, per the GLEC Framework; it affects `co2eTonnes` only.
+
+Both are computed for `seaRoute` and `seaRouteMulti`. `ecaKm` interpolates segment midpoints in unwrapped lon/lat, which is fine because every designated ECA sits well away from the ±180° antimeridian.
 
 ---
 

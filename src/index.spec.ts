@@ -4,6 +4,7 @@ import type { Feature, Point } from 'geojson';
 import {
   CANAL_MAX_DRAFT_M,
   clearFinderCache,
+  co2eFactorKgPerKm,
   DEFAULT_MARNET,
   loadNetwork,
   NoRouteError,
@@ -653,6 +654,69 @@ test('a UN/LOCODE string throws UnknownPortError when no dataset is registered',
   const err = t.throws(() => seaRoute('CNSHA', 'NLRTM'), { instanceOf: UnknownPortError });
   t.is(err?.code, 'CNSHA');
   t.regex(err!.message, /searoute-ts\/ports/);
+});
+
+// ── Emissions: CO₂e (ECA distance needs the searoute-ts/eca subpath) ─────────
+
+test('emissions without a vessel class or zones adds no emission properties', (t) => {
+  const r = seaRoute(NYC, LONDON, { units: 'kilometers', emissions: true });
+  // The core does not bundle ECA zones; without importing 'searoute-ts/eca',
+  // ecaKm is not computed. No vesselClass/factor → no CO₂e either.
+  t.is(r.properties.ecaKm, undefined);
+  t.is(r.properties.co2eTonnes, undefined);
+});
+
+test('emissions + vesselClass gives a rough CO₂e estimate that scales with distance', (t) => {
+  const short = seaRoute(NYC, LONDON, {
+    units: 'kilometers',
+    emissions: true,
+    vesselClass: 'panamax',
+  });
+  const long = seaRoute(SHANGHAI, ROTTERDAM, {
+    units: 'kilometers',
+    emissions: true,
+    vesselClass: 'panamax',
+  });
+  t.true((short.properties.co2eTonnes ?? 0) > 0);
+  t.true((long.properties.co2eTonnes ?? 0) > (short.properties.co2eTonnes ?? 0));
+  // distance (km) × factor (kg/km) / 1000
+  const expected = (short.properties.length * co2eFactorKgPerKm('panamax')) / 1000;
+  t.true(Math.abs((short.properties.co2eTonnes ?? 0) - expected) < 1e-6);
+});
+
+test('co2eFactorKgPerKm overrides the vesselClass default', (t) => {
+  const r = seaRoute(NYC, LONDON, {
+    units: 'kilometers',
+    emissions: true,
+    vesselClass: 'panamax',
+    co2eFactorKgPerKm: 100,
+  });
+  // 100 kg/km → tonnes = length(km) / 10
+  t.true(Math.abs((r.properties.co2eTonnes ?? 0) - r.properties.length / 10) < 1e-6);
+});
+
+test('glecInflation scales the CO₂e estimate', (t) => {
+  const base = seaRoute(NYC, LONDON, {
+    units: 'kilometers',
+    emissions: true,
+    co2eFactorKgPerKm: 100,
+  });
+  const inflated = seaRoute(NYC, LONDON, {
+    units: 'kilometers',
+    emissions: true,
+    co2eFactorKgPerKm: 100,
+    glecInflation: 0.15,
+  });
+  t.true(
+    Math.abs((inflated.properties.co2eTonnes ?? 0) - (base.properties.co2eTonnes ?? 0) * 1.15) <
+      1e-6,
+  );
+});
+
+test('without the emissions flag, no emission properties are set', (t) => {
+  const r = seaRoute(NYC, LONDON, { units: 'kilometers', vesselClass: 'panamax' });
+  t.is(r.properties.co2eTonnes, undefined);
+  t.is(r.properties.ecaKm, undefined);
 });
 
 // ── Custom network ──────────────────────────────────────────────────────────

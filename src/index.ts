@@ -10,6 +10,8 @@ import type { Feature, LineString, MultiLineString, Point, Position } from 'geoj
 
 import { type Antimeridian, splitAtAntimeridian, unwrapCoords } from './lib/antimeridian.js';
 import { passagesBlockedByDraft } from './lib/drafts.js';
+import { ecaDistanceKm, hasEcaZones } from './lib/eca.js';
+import { co2eFactorKgPerKm, type VesselClass } from './lib/emissions.js';
 import { buildFinder, DEFAULT_MARNET, type MarnetNetwork } from './lib/finder.js';
 import { bboxOf, greatCircleKm } from './lib/metrics.js';
 import { resolvePortCode } from './lib/ports.js';
@@ -29,6 +31,21 @@ export type { MarnetNetwork } from './lib/finder.js';
 export { DEFAULT_MARNET, clearFinderCache } from './lib/finder.js';
 export { SnapFailedError } from './lib/snap.js';
 export { CANAL_MAX_DRAFT_M } from './lib/drafts.js';
+export {
+  registerEcaZones,
+  getEcaZones,
+  hasEcaZones,
+  ecaDistanceKm,
+  type EcaZone,
+  type EcaBbox,
+} from './lib/eca.js';
+export {
+  co2eFactorKgPerKm,
+  VESSEL_CLASSES,
+  CO2_PER_TONNE_FUEL,
+  type VesselClass,
+  type VesselClassSpec,
+} from './lib/emissions.js';
 export {
   UnknownPortError,
   registerPortResolver,
@@ -132,6 +149,33 @@ export type SeaRouteOptions = {
    * always returns wrapped `LineString`s.
    */
   antimeridian?: Antimeridian;
+  /**
+   * Emissions reporting (opt-in, rough estimates — not certified figures).
+   * When truthy:
+   * - `properties.ecaKm` / `properties.ecaFraction` report how much of the
+   *   in-water route lies inside ECA/SECA emission-control zones. This needs
+   *   the zones loaded — import `searoute-ts/eca` (or call `registerEcaZones`)
+   *   first; without it these stay `undefined`.
+   * - if a `vesselClass` or `co2eFactorKgPerKm` is also given,
+   *   `properties.co2eTonnes` reports a rough CO₂e estimate.
+   */
+  emissions?: boolean;
+  /**
+   * Vessel class for the CO₂e estimate (see `VESSEL_CLASSES`). Only used when
+   * `emissions` is set. Ignored if `co2eFactorKgPerKm` is provided.
+   */
+  vesselClass?: VesselClass;
+  /**
+   * Override the CO₂e emission factor, in kg CO₂e per km. Takes precedence over
+   * the `vesselClass` default. Only used when `emissions` is set.
+   */
+  co2eFactorKgPerKm?: number;
+  /**
+   * Inflate the distance used for the CO₂e estimate to allow for real-world
+   * deviations from the shortest path. GLEC recommends ~0.15 (i.e. +15 %).
+   * Default 0. Affects `co2eTonnes` only — not `ecaKm` or `length`.
+   */
+  glecInflation?: number;
 };
 
 export type SeaRouteProperties = {
@@ -155,6 +199,20 @@ export type SeaRouteProperties = {
   originSnapKm: number;
   /** Snap distance from input destination to the network vertex used, in km. */
   destinationSnapKm: number;
+  /**
+   * Kilometres of the in-water route inside ECA/SECA emission-control zones.
+   * Present when `emissions` is set and zones are registered (via
+   * `searoute-ts/eca` or `registerEcaZones`). A rough, bbox-based estimate.
+   */
+  ecaKm?: number;
+  /** Fraction (0–1) of the route length inside ECA/SECA zones. */
+  ecaFraction?: number;
+  /**
+   * Rough CO₂e estimate in tonnes. Present when `emissions` is set together
+   * with a `vesselClass` or `co2eFactorKgPerKm`. An order-of-magnitude
+   * estimate (distance × factor), not a certified figure.
+   */
+  co2eTonnes?: number;
 };
 
 export type SeaRouteFeature = Feature<LineString, SeaRouteProperties>;
@@ -267,6 +325,8 @@ export function seaRoute(
     properties.passages = passagesAlong(result.path);
   }
 
+  applyEmissions(inWaterCoords, properties, lenKm, options);
+
   return buildRouteFeature(coords, properties, options.antimeridian);
 }
 
@@ -339,6 +399,8 @@ export function seaRouteMulti(
     for (const l of legs) for (const p of l.properties.passages ?? []) set.add(p);
     properties.passages = Array.from(set);
   }
+
+  applyEmissions(coords, properties, totalKm, options);
 
   return buildRouteFeature(coords, properties, options.antimeridian);
 }
@@ -554,6 +616,35 @@ function routeVia(
   route.properties.detourRatio = gcKm > 0 ? totalKm / gcKm : 1;
 
   return route;
+}
+
+/**
+ * Fill in the opt-in emissions properties (`ecaKm`, `ecaFraction`,
+ * `co2eTonnes`). No-op unless `options.emissions` is truthy. `ecaKm` needs ECA
+ * zones registered (import `searoute-ts/eca`); `co2eTonnes` needs a
+ * `vesselClass` or `co2eFactorKgPerKm`.
+ */
+function applyEmissions(
+  inWaterCoords: Position[],
+  properties: SeaRouteProperties,
+  lenKm: number,
+  options: SeaRouteOptions,
+): void {
+  if (!options.emissions) return;
+
+  if (hasEcaZones()) {
+    const ecaKm = ecaDistanceKm(inWaterCoords);
+    properties.ecaKm = ecaKm;
+    properties.ecaFraction = lenKm > 0 ? ecaKm / lenKm : 0;
+  }
+
+  const factor =
+    options.co2eFactorKgPerKm ??
+    (options.vesselClass ? co2eFactorKgPerKm(options.vesselClass) : undefined);
+  if (factor !== undefined) {
+    const inflation = options.glecInflation ?? 0;
+    properties.co2eTonnes = (lenKm * (1 + inflation) * factor) / 1000;
+  }
 }
 
 /**
