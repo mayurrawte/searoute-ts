@@ -13,7 +13,12 @@ import { passagesBlockedByDraft } from './lib/drafts.js';
 import { buildFinder, DEFAULT_MARNET, type MarnetNetwork } from './lib/finder.js';
 import { bboxOf, greatCircleKm } from './lib/metrics.js';
 import { resolvePortCode } from './lib/ports.js';
-import { type Passage, passagesAlong } from './lib/restrictions.js';
+import {
+  canonicalizePassage,
+  type Passage,
+  passageCentroid,
+  passagesAlong,
+} from './lib/restrictions.js';
 import { snapToNetwork } from './lib/snap.js';
 
 export type { Antimeridian } from './lib/antimeridian.js';
@@ -50,6 +55,20 @@ export type SeaRouteOptions = {
    *   `{ restrictions: ['suez', 'babelmandeb'] }`
    */
   restrictions?: Passage[];
+  /**
+   * Named passages the route is required to traverse — the inverse of
+   * `restrictions`. Useful to compare explicit routings, e.g. "via Suez"
+   * against "via Cape of Good Hope":
+   *   `{ via: ['panama'] }`
+   *
+   * Implemented by routing `origin → passage → destination` through the
+   * passage's location (via the multi-leg machinery), so multiple passages are
+   * visited in the order given. A passage named here is never blocked out from
+   * under the requirement (so, for example, `via: ['northeast']` reaches the
+   * Northeast Passage without also needing `allowArctic`). Passing a passage in
+   * both `via` and `restrictions` is a contradiction and throws `NoRouteError`.
+   */
+  via?: Passage[];
   /**
    * When `false` (the default), the Northwest and Northeast Passages are
    * implicitly added to `restrictions`. They are mathematically the shortest
@@ -196,6 +215,10 @@ export function seaRoute(
 ): SeaRouteFeature | SeaRouteMultiFeature {
   const options: SeaRouteOptions =
     typeof unitsOrOptions === 'string' ? { units: unitsOrOptions } : unitsOrOptions;
+
+  if (options.via && options.via.length > 0) {
+    return routeVia(origin, destination, options);
+  }
 
   const units: Units = options.units ?? 'nauticalmiles';
   const network = options.network ?? DEFAULT_MARNET;
@@ -470,6 +493,68 @@ export async function loadNetwork(
 }
 
 // ── Internal helpers ────────────────────────────────────────────────────────
+
+/**
+ * Force a route through one or more named passages (the `via` option).
+ *
+ * Routes `origin → passage₁ → … → passageₙ → destination` through each
+ * passage's location, reusing the multi-leg machinery. A passage named in
+ * `via` is never blocked out from under the requirement; naming the same
+ * passage in both `via` and `restrictions` is a contradiction.
+ *
+ * @throws {NoRouteError} when a `via` passage is also restricted, or when no
+ *   path through the requested passages exists.
+ */
+function routeVia(
+  origin: PointInput,
+  destination: PointInput,
+  options: SeaRouteOptions,
+): SeaRouteFeature | SeaRouteMultiFeature {
+  const via = options.via ?? [];
+  const units: Units = options.units ?? 'nauticalmiles';
+
+  // A passage cannot be both required and forbidden.
+  const restrictedCanon = new Set((options.restrictions ?? []).map(canonicalizePassage));
+  for (const p of via) {
+    if (restrictedCanon.has(canonicalizePassage(p))) {
+      throw new NoRouteError(`Cannot route via '${p}' while it is also restricted`);
+    }
+  }
+
+  // Resolve the full effective restriction set (user + draft + arctic) once,
+  // then drop any passage we are forcing through so it isn't blocked per leg.
+  const viaCanon = new Set(via.map(canonicalizePassage));
+  const legRestrictions = resolveRestrictions(options).filter(
+    (r) => !viaCanon.has(canonicalizePassage(r)),
+  );
+
+  const waypoints: PointInput[] = [origin, ...via.map(passageCentroid), destination];
+  const legOptions: SeaRouteOptions = {
+    ...options,
+    via: undefined,
+    restrictions: legRestrictions,
+    // The full effective set is already folded into legRestrictions; disable
+    // the implicit additions so each leg doesn't re-add arctic/draft blocks.
+    allowArctic: true,
+    vesselDraftMeters: undefined,
+  };
+
+  const route =
+    options.antimeridian === 'split'
+      ? seaRouteMulti(waypoints, { ...legOptions, antimeridian: 'split' })
+      : seaRouteMulti(waypoints, { ...legOptions, antimeridian: options.antimeridian });
+
+  // Report great-circle length / detour against the actual origin→destination
+  // geodesic (not the forced waypoints), matching seaRoute's semantics.
+  const o = toFeaturePoint(origin).geometry.coordinates;
+  const d = toFeaturePoint(destination).geometry.coordinates;
+  const gcKm = greatCircleKm(o, d);
+  route.properties.greatCircleLength = convertKm(gcKm, units);
+  const totalKm = route.properties.length * unitToKm(units);
+  route.properties.detourRatio = gcKm > 0 ? totalKm / gcKm : 1;
+
+  return route;
+}
 
 /**
  * Build the output feature from route coordinates, applying the antimeridian

@@ -87,6 +87,25 @@ export const PASSAGE_BBOXES: Record<Passage, Bbox[]> = {
 };
 
 /**
+ * Centroid `[lon, lat]` of a passage's bbox region, used as a waypoint to force
+ * a route through the passage (the `via` option). When a passage has several
+ * bboxes, the mean of their individual centres is returned.
+ */
+export function passageCentroid(passage: Passage): Position {
+  const bboxes = PASSAGE_BBOXES[passage];
+  if (!bboxes || bboxes.length === 0) {
+    throw new Error(`Unknown passage: ${passage}`);
+  }
+  let lon = 0;
+  let lat = 0;
+  for (const [minLon, minLat, maxLon, maxLat] of bboxes) {
+    lon += (minLon + maxLon) / 2;
+    lat += (minLat + maxLat) / 2;
+  }
+  return [lon / bboxes.length, lat / bboxes.length];
+}
+
+/**
  * Exact segment-vs-bbox test (Liang–Barsky clip). A narrow strait bbox can
  * sit entirely between two vertices of a long network edge, so sampling
  * points along the edge is not enough — the Bosporus slips through a

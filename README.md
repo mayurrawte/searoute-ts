@@ -270,7 +270,8 @@ GDAL conversion), host the resulting JSON, and load it with
 ```ts
 seaRoute(origin, destination, {
   units:                   'nauticalmiles',          // any Turf unit
-  restrictions:            ['suez', 'babelmandeb'],  // see passage table below
+  restrictions:            ['suez', 'babelmandeb'],  // block passages (see table below)
+  via:                     ['panama'],               // require passages (inverse of restrictions)
   allowArctic:             false,                    // default — blocks NWP & NEP
   vesselDraftMeters:       15,                       // auto-restrict canals
   speedKnots:              22,                       // → properties.durationHours
@@ -300,6 +301,25 @@ seaRoute(yokohama, la, { antimeridian: 'split' });  // MultiLineString cut at ±
 dateline (ideal for MapLibre/Leaflet/Deck.gl). `'split'` cuts the route into a
 `MultiLineString` at ±180°, keeping every coordinate in range. Both apply to
 `seaRoute` and `seaRouteMulti`; `properties.length` is unchanged either way.
+
+### Forcing routes through a passage (`via`)
+
+`restrictions` **blocks** a passage; `via` **requires** one — the inverse. Use
+it to compare explicit routings, e.g. "via Suez" against "via Cape of Good Hope",
+or to force a Pacific + Panama routing between Asia and Europe:
+
+```ts
+seaRoute('CNSHA', 'NLRTM', { via: ['suez'] });   // through Suez (the default)
+seaRoute('CNSHA', 'NLRTM', { via: ['panama'] });  // across the Pacific + Panama instead
+```
+
+`via` accepts the same passage names as `restrictions` and visits multiple
+passages in the order given. It routes `origin → passage → destination` through
+each passage's location using the multi-leg machinery, so it composes with the
+other options. A passage named in `via` is never blocked out from under the
+requirement (`via: ['northeast']` reaches the Northeast Passage without also
+needing `allowArctic`). Naming the same passage in both `via` and `restrictions`
+is a contradiction and throws `NoRouteError`.
 
 ## Restrictable passages
 

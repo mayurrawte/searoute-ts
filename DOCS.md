@@ -98,6 +98,10 @@ Weight `0` tells `PathFinder` the edge is non-passable, so Dijkstra never traver
 - **Native check:** uses the `pass` attribute on the marnet feature itself. Exact, no false positives. Available for the 12 canals/straits that Eurostat labels.
 - **Bbox fallback:** for passages without native labels, we sample 6 points along the edge and check if any falls inside the passage's bounding box. This catches both midpoint-in-bbox cases and long edges that "jump" a narrow channel.
 
+### Forcing passages (`via`)
+
+`via: Passage[]` is the inverse of `restrictions`: instead of blocking a passage, it **requires** one. Rather than manipulating edge weights, it reuses the multi-leg machinery — the route is computed as `origin → passage₁ → … → passageₙ → destination`, snapping each passage's `PASSAGE_BBOXES` centroid to the network as an intermediate waypoint. Legs inherit the caller's effective restrictions, minus any passage named in `via` (so a required passage is never blocked out from under the requirement — e.g. `via: ['northeast']` works without `allowArctic`). A passage that appears in both `via` and `restrictions` (compared after alias canonicalisation) is a contradiction and throws `NoRouteError`. `greatCircleLength`/`detourRatio` are still measured against the direct origin→destination geodesic, matching plain `seaRoute`.
+
 ### Arctic gating
 
 The Northwest and Northeast Passages are mathematically the shortest path for many Asia ↔ Europe and Asia ↔ East-Coast-Americas routes (think Yokohama → New York via the Bering Strait + Northwest Passage). They are ice-blocked most of the year and not used by commercial shipping. So they're **blocked by default**. Opt in with `allowArctic: true`.
