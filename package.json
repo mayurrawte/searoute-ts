@@ -16,6 +16,16 @@
       "import": "./dist/esm/ports/index.js",
       "require": "./dist/cjs/ports/index.js"
     },
+    "./marnet-20km": {
+      "types": "./dist/types/marnet/marnet-20km.d.ts",
+      "import": "./dist/esm/marnet/marnet-20km.js",
+      "require": "./dist/cjs/marnet/marnet-20km.js"
+    },
+    "./marnet-50km": {
+      "types": "./dist/types/marnet/marnet-50km.d.ts",
+      "import": "./dist/esm/marnet/marnet-50km.js",
+      "require": "./dist/cjs/marnet/marnet-50km.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": [

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Optional higher-resolution networks as **subpath exports**. Import
+  `DEFAULT_MARNET` from `searoute-ts/marnet-20km` (Eurostat `marnet_plus_20km`,
+  ~29,581 segments) or `searoute-ts/marnet-50km` (~15,498 segments) and pass it
+  to the `network` option for finer coastal routing than the bundled 100 km
+  default. Each variant ships once as a shared `dist/data/marnet-<res>.cjs`
+  asset that both the CJS and ESM builds load at runtime (building on #10), so
+  importing a variant doesn't bloat the core or duplicate data across builds.
+  `scripts/build-marnet.cjs` now takes a resolution label and can generate any
+  Eurostat resolution (5/10/20/50/100 km); the 10 km and 5 km networks are too
+  large to bundle and are documented for use via `loadNetwork`. A size/accuracy
+  tradeoff table was added to the README. (#11)
+
 ## 2.2.0 — 2026-07-03
 
 ### Added
@@ -163,9 +178,11 @@ see ~24% smaller numbers — they now match the geodesic length in nm correctly.
 - ~~The marnet is inlined in the bundle (~1.1 MB per build, ~2.2 MB total
   unpacked). Migrating to a single shared JSON asset is a non-breaking
   follow-up and would roughly halve published size.~~ Done in Unreleased (#10).
-- Multi-resolution networks (Eurostat ships 5 km / 10 km / 20 km / 50 km /
+- ~~Multi-resolution networks (Eurostat ships 5 km / 10 km / 20 km / 50 km /
   100 km). Currently we only ship 100 km. Other resolutions could be loaded
-  via a separate import path.
+  via a separate import path.~~ 20 km and 50 km now ship as the
+  `searoute-ts/marnet-20km` / `searoute-ts/marnet-50km` subpath exports; 10 km
+  and 5 km are generatable via `scripts/build-marnet.cjs`. Done in Unreleased (#11).
 
 ## 1.2.1 — 2022-07-12
 First public release of the TypeScript port. See git history for prior 1.x

@@ -32,7 +32,14 @@ A consequence is that a route which crosses the Pacific comes back wrapped to `[
 
 ### Other resolutions
 
-Eurostat ships 5 km / 10 km / 20 km / 50 km / 100 km networks. We bundle only 100 km to keep the package small. For higher resolution, use the `network` option — see [Custom networks](#custom-networks).
+Eurostat ships 5 km / 10 km / 20 km / 50 km / 100 km networks. The core bundles only 100 km to keep the install small. Two finer resolutions are available as **subpath exports** you can pass to the `network` option:
+
+```ts
+import { DEFAULT_MARNET } from 'searoute-ts/marnet-20km'; // or 'searoute-ts/marnet-50km'
+seaRoute(origin, destination, { network: DEFAULT_MARNET });
+```
+
+Each variant ships as its own shared `dist/data/marnet-<res>.cjs` asset (loaded once by both builds), so you only download it if you import it. The 10 km and 5 km networks are too large to bundle — generate them from source with `scripts/build-marnet.cjs` and load them via `loadNetwork` or the `network` option. See [Custom networks](#custom-networks) and the resolution table in the README.
 
 ---
 

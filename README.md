@@ -211,6 +211,40 @@ You choose the version by choosing the **URL**:
 For production, prefer a **pinned** URL (or just the bundled default) so your
 distances don't shift when the network is updated.
 
+### Higher-resolution networks (optional)
+
+The bundled network is Eurostat's **100 km** `marnet_plus`. Eurostat also
+publishes finer resolutions, which give more accurate coastal routing and
+shorter-hop fidelity at the cost of a larger download and slightly slower
+first-route graph construction. Two moderate resolutions ship as **subpath
+exports** so you only pay for them if you import them:
+
+```ts
+import { DEFAULT_MARNET } from 'searoute-ts/marnet-20km'; // or 'searoute-ts/marnet-50km'
+import { seaRoute } from 'searoute-ts';
+
+seaRoute(origin, destination, { network: DEFAULT_MARNET });
+```
+
+Like the bundled default, each variant ships once as a shared
+`dist/data/marnet-<res>.cjs` asset that both the CJS and ESM builds load at
+runtime, so importing a variant doesn't duplicate the network across builds.
+
+| Import | Resolution | Segments | JSON size | gzipped | Coastal accuracy |
+| --- | --- | --- | --- | --- | --- |
+| `searoute-ts` (bundled default) | 100 km | 9,847 | ~1.3 MB | ~0.18 MB | Baseline — good for global routing |
+| `searoute-ts/marnet-50km` | 50 km | 15,498 | ~1.9 MB | ~0.27 MB | Modest step up |
+| `searoute-ts/marnet-20km` | 20 km | 29,581 | ~3.6 MB | ~0.51 MB | Noticeably finer coastal hops |
+| via `loadNetwork` (see below) | 10 km | 48,301 | ~5.9 MB | ~0.84 MB | High — larger download |
+| via `loadNetwork` (see below) | 5 km | 72,478 | ~9.0 MB | ~1.24 MB | Highest — largest download |
+
+The 10 km and 5 km networks are large enough that bundling them would dominate
+the install, so they are **not** shipped in the package. Generate them from the
+Eurostat source with `scripts/build-marnet.cjs` (the script header documents the
+GDAL conversion), host the resulting JSON, and load it with
+[`loadNetwork`](#fetch-the-network-from-a-url-instead-of-bundling-it-optional)
+— or pass any `FeatureCollection<LineString>` to the `network` option directly.
+
 ## Output shape
 
 ```ts
@@ -392,8 +426,10 @@ by default — the Northwest and Northeast Passages are blocked. Pass
 `allowArctic: true` to enable them.
 
 **Can I use my own network?** Yes — `seaRoute(origin, destination, { network })`.
-Useful for higher-resolution Eurostat data (5/10/20/50 km), inland waterways,
-or AIS-derived custom graphs.
+Useful for inland waterways or AIS-derived custom graphs. For higher-resolution
+Eurostat data (5/10/20/50 km), see
+[Higher-resolution networks](#higher-resolution-networks-optional) — 20 km and
+50 km ship as subpath exports.
 
 **Does it handle the Red Sea / Suez crisis?** Yes — pass
 `restrictions: ['suez', 'babelmandeb']` to force Cape of Good Hope routing.
@@ -402,10 +438,14 @@ or AIS-derived custom graphs.
 marnet has been normalised so the Pacific is a connected graph, and all
 distances use haversine internally.
 
-**What's the bundle size?** ~184 KB packed / ~1.3 MB unpacked on npm. The
-bundled marnet is the bulk (~1.1 MB JSON). It ships once as a shared
-`dist/data/marnet.cjs` asset that both the CJS and ESM builds load at runtime,
-rather than being inlined into each build. Tree-shakeable.
+**What's the bundle size?** What you import at runtime is small: the core plus
+the bundled 100 km marnet (~1.1 MB JSON, shipped once as a shared
+`dist/data/marnet.cjs` asset both builds load, rather than inlined into each).
+Tree-shakeable, so the optional `searoute-ts/marnet-20km` / `marnet-50km`
+networks only load if you import them. They do add to the npm tarball, though —
+including them the package is ~1.1 MB packed / ~7 MB unpacked (each variant is a
+single shared asset, not duplicated per build). If you need the finer networks
+without the install cost, generate and host them and use `loadNetwork` instead.
 
 ## Credits
 
