@@ -374,6 +374,35 @@ resolver into the core so `seaRoute('CNSHA', 'NLRTM')` works.
   snaps them onto the network anyway, so this is fine for distance/visualisation.
 - Unknown or malformed codes throw `UnknownPortError`.
 
+## Use from an AI agent (MCP)
+
+A companion [Model Context Protocol](https://modelcontextprotocol.io) server,
+[`@searoute-ts/mcp`](https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server),
+lets AI agents (Claude Desktop, the `claude` CLI, etc.) compute real sea routes
+instead of guessing — asking "how far is Shanghai to Rotterdam by sea, avoiding
+Suez?" calls the library directly. It exposes two tools, `sea_route` and
+`sea_route_alternatives`, and accepts port codes (`'CNSHA'`) or coordinates.
+
+```bash
+claude mcp add searoute -- npx -y @searoute-ts/mcp
+```
+
+Or add it to any MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "searoute": {
+      "command": "npx",
+      "args": ["-y", "@searoute-ts/mcp"]
+    }
+  }
+}
+```
+
+See the [server's README](https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server)
+for the full tool reference.
+
 ## How it works
 
 A two-page deep-dive (graph data, snapping, Dijkstra, restrictions,
