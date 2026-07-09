@@ -61,6 +61,32 @@ test('ecaDistanceKm measures a line inside the Mediterranean SECA', (t) => {
   t.true(km > 100 && km < 220, `expected ~165 km inside the Med, got ${km}`);
 });
 
+test('ecaDistanceKm reports 0 for a mid-Pacific segment crossing the antimeridian', (t) => {
+  // 170°E → 170°W at 45°N: the short way crosses the dateline, thousands of km
+  // from any ECA. Linear interpolation in wrapped lon/lat would sweep the
+  // midpoints the long way round through 0° — straight through the
+  // Mediterranean and North Sea boxes.
+  const km = ecaDistanceKm([
+    [170.0, 45.0],
+    [-170.0, 45.0],
+  ]);
+  t.is(km, 0, `dateline-crossing open-ocean segment must be out of zone, got ${km}`);
+});
+
+test('a trans-Pacific route crossing the dateline reports 0 ECA distance', (t) => {
+  // Yokohama → Honolulu: crosses the antimeridian, never nears an ECA
+  // (Hawaii is outside the North American ECA).
+  const r = seaRoute(pt(139.65, 35.44), pt(-157.86, 21.3), {
+    units: 'kilometers',
+    emissions: true,
+  });
+  t.is(
+    r.properties.ecaKm ?? 0,
+    0,
+    `mid-Pacific route must have no ECA distance, got ${r.properties.ecaKm}`,
+  );
+});
+
 test.serial('registerEcaZones swaps in custom zones (restored synchronously)', (t) => {
   const original = getEcaZones();
   registerEcaZones([{ name: 'test-box', bboxes: [[0, 0, 10, 10]] }]);

@@ -1,5 +1,6 @@
 import type { Position } from 'geojson';
 
+import { unwrapCoords } from './antimeridian.js';
 import { greatCircleKm } from './metrics.js';
 
 /** Axis-aligned bbox: [minLon, minLat, maxLon, maxLat]. */
@@ -45,6 +46,11 @@ function pointInBbox(lon: number, lat: number, bb: EcaBbox): boolean {
   return lon >= bb[0] && lon <= bb[2] && lat >= bb[1] && lat <= bb[3];
 }
 
+/** Bring a (possibly unwrapped) longitude back into [-180, 180). */
+function wrapLon(lon: number): number {
+  return ((((lon + 180) % 360) + 360) % 360) - 180;
+}
+
 /**
  * Kilometres of the path that fall inside any registered ECA zone.
  *
@@ -53,26 +59,28 @@ function pointInBbox(lon: number, lat: number, bb: EcaBbox): boolean {
  * This mirrors the bbox-based passage detection and is intentionally a rough
  * figure (see {@link EcaZone}). Returns 0 when no zones are registered.
  *
- * Assumes zones sit well away from the ±180° antimeridian (all designated ECAs
- * do), so segment midpoints are interpolated in unwrapped lon/lat.
+ * Coordinates are unwrapped first so that segments crossing the ±180°
+ * antimeridian interpolate the short way round; each midpoint is wrapped back
+ * into ±180° before the zone test.
  */
 export function ecaDistanceKm(coords: Position[]): number {
   const zones = activeZones;
   if (zones.length === 0 || coords.length < 2) return 0;
   const boxes: EcaBbox[] = zones.flatMap((z) => z.bboxes);
 
+  const u = unwrapCoords(coords);
   const STEP_KM = 5;
   let inside = 0;
-  for (let i = 0; i < coords.length - 1; i++) {
-    const a = coords[i];
-    const b = coords[i + 1];
+  for (let i = 0; i < u.length - 1; i++) {
+    const a = u[i];
+    const b = u[i + 1];
     const segKm = greatCircleKm(a, b);
     if (segKm === 0) continue;
     const steps = Math.max(1, Math.ceil(segKm / STEP_KM));
     const stepKm = segKm / steps;
     for (let s = 0; s < steps; s++) {
       const tMid = (s + 0.5) / steps;
-      const lon = a[0] + (b[0] - a[0]) * tMid;
+      const lon = wrapLon(a[0] + (b[0] - a[0]) * tMid);
       const lat = a[1] + (b[1] - a[1]) * tMid;
       if (boxes.some((bb) => pointInBbox(lon, lat, bb))) inside += stepKm;
     }
