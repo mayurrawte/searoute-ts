@@ -22,6 +22,21 @@
   is never blocked out from under the requirement (so `via: ['northeast']` needs
   no `allowArctic`); naming a passage in both `via` and `restrictions` throws
   `NoRouteError`. (#8)
+- Emissions & ECA/SECA reporting (opt-in, rough estimates). Pass
+  `emissions: true` to fill new `properties`:
+  - `ecaKm` / `ecaFraction` — how much of the route lies inside ECA/SECA
+    emission-control areas (Baltic, North Sea, Mediterranean, North American, US
+    Caribbean). The zones ship behind a new `searoute-ts/eca` subpath export
+    (bounding-box approximations of the IMO MARPOL Annex VI areas); importing it
+    registers them, so the core stays lean. Also exports `ECA_ZONES`,
+    `registerEcaZones`, `getEcaZones`, `hasEcaZones`, `ecaDistanceKm`, `EcaZone`,
+    `EcaBbox`.
+  - `co2eTonnes` — a rough CO₂e estimate (`distance × vessel-class factor`), when
+    a `vesselClass` or `co2eFactorKgPerKm` is given. Factors derive transparently
+    from representative fuel burn and the IMO HFO CO₂ conversion; `glecInflation`
+    applies the GLEC ~15 % distance uplift. New exports `VESSEL_CLASSES`,
+    `co2eFactorKgPerKm`, `CO2_PER_TONNE_FUEL`, `VesselClass`, `VesselClassSpec`.
+    Documented clearly as estimates, not certified figures. (#12)
 
 ## 2.2.0 — 2026-07-03
 

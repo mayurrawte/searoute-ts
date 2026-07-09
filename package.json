@@ -26,10 +26,16 @@
       "import": "./dist/esm/marnet/marnet-50km.js",
       "require": "./dist/cjs/marnet/marnet-50km.js"
     },
+    "./eca": {
+      "types": "./dist/types/eca/index.d.ts",
+      "import": "./dist/esm/eca/index.js",
+      "require": "./dist/cjs/eca/index.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": [
-    "**/ports/index.js"
+    "**/ports/index.js",
+    "**/eca/index.js"
   ],
   "repository": {
     "type": "git",

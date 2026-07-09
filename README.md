@@ -261,6 +261,9 @@ GDAL conversion), host the resulting JSON, and load it with
     destinationSnapKm: number,
     durationHours?: number,            // if `speedKnots` set
     passages?: ('suez' | 'panama' | ...)[],  // if `returnPassages: true`
+    ecaKm?: number,                    // if `emissions` + `searoute-ts/eca` imported
+    ecaFraction?: number,              // ecaKm / length (0–1)
+    co2eTonnes?: number,               // if `emissions` + `vesselClass`/factor
   }
 }
 ```
@@ -280,6 +283,10 @@ seaRoute(origin, destination, {
   maxSnapDistanceKm:       50,                       // SnapFailedError if exceeded
   network:                 customMarnet,             // BYO FeatureCollection
   antimeridian:            'split',                  // 'unwrap' | 'split' dateline handling
+  emissions:               true,                     // → properties.ecaKm / co2eTonnes
+  vesselClass:             'panamax',                // CO₂e estimate class
+  co2eFactorKgPerKm:       225,                      // override the class factor
+  glecInflation:           0.15,                     // +15% distance for CO₂e (GLEC)
 });
 ```
 
@@ -320,6 +327,36 @@ other options. A passage named in `via` is never blocked out from under the
 requirement (`via: ['northeast']` reaches the Northeast Passage without also
 needing `allowArctic`). Naming the same passage in both `via` and `restrictions`
 is a contradiction and throws `NoRouteError`.
+
+### Emissions & ECA/SECA reporting
+
+Opt in with `emissions: true` for two rough estimates on `properties`:
+
+```ts
+import 'searoute-ts/eca';                 // load the ECA/SECA zones (enables ecaKm)
+import { seaRoute } from 'searoute-ts';
+
+const r = seaRoute('CNSHA', 'NLRTM', {
+  emissions: true,
+  vesselClass: 'panamax',                 // → co2eTonnes
+});
+r.properties.ecaKm;        // km of the route inside emission-control zones
+r.properties.ecaFraction;  // that as a fraction of route length (0–1)
+r.properties.co2eTonnes;   // rough CO₂e estimate for the voyage
+```
+
+- **`ecaKm`** — how much of the route lies inside ECA/SECA emission-control
+  areas (Baltic, North Sea, Mediterranean, North American and US Caribbean),
+  which drives fuel-type/cost. The zones ship behind the `searoute-ts/eca`
+  subpath export (to keep the core lean); importing it registers them. They are
+  **bounding-box approximations** of the IMO MARPOL Annex VI areas — good for
+  estimates, not compliance. Swap in higher-fidelity polygons with
+  `registerEcaZones`.
+- **`co2eTonnes`** — a deliberately simple `distance × vessel-class factor`
+  estimate, **not a certified figure**. Factors are derived transparently from a
+  representative fuel burn and the IMO HFO CO₂ conversion (see `VESSEL_CLASSES`);
+  override with `co2eFactorKgPerKm`. GLEC recommends inflating shortest-path
+  distance by ~15 % for real-world deviations — pass `glecInflation: 0.15`.
 
 ## Restrictable passages
 
