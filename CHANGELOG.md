@@ -14,6 +14,14 @@
   Eurostat resolution (5/10/20/50/100 km); the 10 km and 5 km networks are too
   large to bundle and are documented for use via `loadNetwork`. A size/accuracy
   tradeoff table was added to the README. (#11)
+- `via` option — require a route to traverse named passages, the inverse of
+  `restrictions`. `seaRoute(o, d, { via: ['panama'] })` forces a Pacific + Panama
+  routing; `via` accepts the same `Passage` names as `restrictions` and visits
+  multiple passages in order (routing `origin → passage → destination` through
+  each passage's location via the multi-leg machinery). A passage named in `via`
+  is never blocked out from under the requirement (so `via: ['northeast']` needs
+  no `allowArctic`); naming a passage in both `via` and `restrictions` throws
+  `NoRouteError`. (#8)
 
 ## 2.2.0 — 2026-07-03
 

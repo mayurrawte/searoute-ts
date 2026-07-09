@@ -304,6 +304,97 @@ test('allowArctic:true permits NEP for Asia→Europe and shortens the route', (t
   t.true((open.properties.passages ?? []).includes('northeast'), 'should use NEP');
 });
 
+// ── via (forced passages) ───────────────────────────────────────────────────
+
+test('via: [panama] forces Shanghai→Rotterdam across the Pacific + Panama (not Suez)', (t) => {
+  const direct = seaRoute(SHANGHAI, ROTTERDAM, { units: 'kilometers', returnPassages: true });
+  const forced = seaRoute(SHANGHAI, ROTTERDAM, {
+    units: 'kilometers',
+    via: ['panama'],
+    returnPassages: true,
+  });
+  const p = new Set(forced.properties.passages ?? []);
+  t.true(p.has('panama'), `should traverse Panama, got ${[...p]}`);
+  t.false(p.has('suez'), 'should not use Suez when forced via Panama');
+  // Pacific + Panama + Atlantic is far longer than the default Suez routing.
+  t.true(
+    forced.properties.length > direct.properties.length,
+    `forced ${forced.properties.length} should exceed direct ${direct.properties.length}`,
+  );
+  // Sweeps into the western hemisphere on the trans-Pacific crossing.
+  t.true(
+    forced.properties.bbox[0] < -100,
+    `bbox should reach the Americas: ${forced.properties.bbox}`,
+  );
+});
+
+test('via: [magellan] forces NY→LA around South America instead of Panama', (t) => {
+  clearFinderCache();
+  const direct = seaRoute(NYC, LA, { units: 'kilometers', returnPassages: true });
+  const forced = seaRoute(NYC, LA, {
+    units: 'kilometers',
+    via: ['magellan'],
+    returnPassages: true,
+  });
+  t.true((direct.properties.passages ?? []).includes('panama'), 'baseline uses Panama');
+  const p = new Set(forced.properties.passages ?? []);
+  t.true(p.has('magellan'), `should traverse Magellan, got ${[...p]}`);
+  // Rounding Cape Horn is thousands of km longer than the Panama shortcut,
+  // which proves the route went around South America rather than transiting
+  // the canal. (The Pacific leg still skirts Panama's Pacific approaches, so
+  // the bbox-based passage flag can legitimately include 'panama'.)
+  t.true(
+    forced.properties.length > direct.properties.length + 10000,
+    `forced ${forced.properties.length} should be much longer than direct ${direct.properties.length}`,
+  );
+});
+
+test('via: [suez] keeps Shanghai→Rotterdam on the Suez routing', (t) => {
+  const forced = seaRoute(SHANGHAI, ROTTERDAM, {
+    units: 'kilometers',
+    via: ['suez'],
+    returnPassages: true,
+  });
+  t.true((forced.properties.passages ?? []).includes('suez'));
+});
+
+test('via: [northeast] routes through the NEP without needing allowArctic', (t) => {
+  // Arctic passages are blocked by default, but a passage named in `via` must
+  // not be blocked out from under the requirement.
+  const forced = seaRoute(SHANGHAI, ROTTERDAM, {
+    units: 'kilometers',
+    via: ['northeast'],
+    returnPassages: true,
+  });
+  t.true(
+    (forced.properties.passages ?? []).includes('northeast'),
+    `should use the NEP, got ${forced.properties.passages}`,
+  );
+});
+
+test('via keeps the great-circle reference measured origin→destination', (t) => {
+  const direct = seaRoute(SHANGHAI, ROTTERDAM, { units: 'kilometers' });
+  const forced = seaRoute(SHANGHAI, ROTTERDAM, { units: 'kilometers', via: ['panama'] });
+  t.is(
+    Math.round(forced.properties.greatCircleLength),
+    Math.round(direct.properties.greatCircleLength),
+    'great-circle length should reference origin→destination, not the via waypoints',
+  );
+});
+
+test('via and restrictions in contradiction throw NoRouteError', (t) => {
+  t.throws(() => seaRoute(SHANGHAI, ROTTERDAM, { via: ['suez'], restrictions: ['suez'] }), {
+    instanceOf: NoRouteError,
+  });
+});
+
+test('via/restrictions contradiction is detected across passage aliases', (t) => {
+  t.throws(
+    () => seaRoute(SHANGHAI, ROTTERDAM, { via: ['babalmandab'], restrictions: ['babelmandeb'] }),
+    { instanceOf: NoRouteError },
+  );
+});
+
 // ── Output shape ────────────────────────────────────────────────────────────
 
 test('appendOriginDestination adds endpoints but does not change length', (t) => {
