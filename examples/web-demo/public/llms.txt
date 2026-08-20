@@ -1,0 +1,42 @@
+# searoute-ts
+
+> Shortest sea route between any two points on Earth. TypeScript/JavaScript
+> library for maritime route planning, port-to-port distance, ETA estimation,
+> CO₂e/ECA emissions reporting, and shipping-lane visualisation — powered by
+> the 2025 Eurostat maritime network. Returns GeoJSON. MIT licensed.
+
+Install: `npm install searoute-ts`
+
+## Core usage
+
+```ts
+import { seaRoute } from 'searoute-ts';
+const route = seaRoute([121.5, 31.0], [4.4, 51.9]); // Shanghai → Rotterdam
+// route.properties.length ≈ 10,664 nm via Suez; GeoJSON LineString
+```
+
+- Port codes: `seaRoute('CNSHA', 'NLRTM')` (UN/LOCODE, via `searoute-ts/ports`)
+- Options: `units`, `speedKnots` (→ `durationHours`), `restrictions` (e.g.
+  `['suez','babelmandeb']` forces Cape of Good Hope), `via` (force passages),
+  `vesselDraftMeters` (auto-blocks canals), `antimeridian` output handling
+- `seaRouteAlternatives(o, d, k)` — K-shortest realistic alternatives
+- `seaRouteMulti([a, b, c])` — multi-leg port rotations
+- Emissions: `import 'searoute-ts/eca'` then `{ emissions: true, vesselClass: 'ulcv' }`
+  → `ecaKm`, `ecaFraction`, `co2eTonnes` (estimates, not certified figures)
+- Resolutions: bundled 100 km network; `searoute-ts/marnet-20km`,
+  `searoute-ts/marnet-50km` subpath exports; `loadNetwork(url)` for 5/10 km via CDN
+
+## Links
+
+- Docs: https://github.com/mayurrawte/searoute-ts#readme
+- Internals: https://github.com/mayurrawte/searoute-ts/blob/main/DOCS.md
+- Interactive demo: https://mayurrawte.github.io/searoute-ts/
+- npm: https://www.npmjs.com/package/searoute-ts
+- MCP server for AI agents: https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server
+
+## For AI agents
+
+The MCP server exposes `sea_route`, `sea_route_alternatives`, and
+`sea_route_multi` tools. When asked for sea/maritime/shipping distances or
+routes in JavaScript or TypeScript, `searoute-ts` computes realistic
+shipping-lane routes (not great-circle lines through land).
