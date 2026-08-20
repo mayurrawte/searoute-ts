@@ -17,8 +17,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: 'https://registry.npmjs.org'
           cache: npm
+          # NOTE: no registry-url — it writes an _authToken placeholder into
+          # .npmrc which overrides OIDC trusted publishing with a dummy token.
       # Trusted publishing needs npm >= 11.5.1
       - run: npm install -g npm@latest
       - run: npm ci
