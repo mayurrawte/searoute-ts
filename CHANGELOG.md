@@ -1,8 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2.3.0 — 2026-08-20
 
 ### Added
+- `@searoute-ts/mcp` — an MCP server (in `examples/mcp-server`) exposing
+  `sea_route`, `sea_route_alternatives`, and `sea_route_multi` as tools so AI
+  agents can compute sea routes directly. (#13)
 - Optional higher-resolution networks as **subpath exports**. Import
   `DEFAULT_MARNET` from `searoute-ts/marnet-20km` (Eurostat `marnet_plus_20km`,
   ~29,581 segments) or `searoute-ts/marnet-50km` (~15,498 segments) and pass it
