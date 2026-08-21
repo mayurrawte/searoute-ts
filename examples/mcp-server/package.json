@@ -34,12 +34,18 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "searoute-ts": "^2.2.0",
+    "searoute-ts": "^2.3.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.9"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mayurrawte/searoute-ts.git",
+    "directory": "examples/mcp-server"
+  },
+  "homepage": "https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server#readme"
 }
