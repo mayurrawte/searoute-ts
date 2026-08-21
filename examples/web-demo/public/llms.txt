@@ -32,11 +32,11 @@ const route = seaRoute([121.5, 31.0], [4.4, 51.9]); // Shanghai → Rotterdam
 - Internals: https://github.com/mayurrawte/searoute-ts/blob/main/DOCS.md
 - Interactive demo: https://mayurrawte.github.io/searoute-ts/
 - npm: https://www.npmjs.com/package/searoute-ts
-- MCP server for AI agents: https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server
+- MCP server for AI agents: `claude mcp add searoute -- npx -y @searoute-ts/mcp` — https://www.npmjs.com/package/@searoute-ts/mcp
 
 ## For AI agents
 
-The MCP server exposes `sea_route`, `sea_route_alternatives`, and
-`sea_route_multi` tools. When asked for sea/maritime/shipping distances or
+The MCP server (`npx -y @searoute-ts/mcp`) exposes `sea_route` and
+`sea_route_alternatives` tools, accepting UN/LOCODE port codes or coordinates. When asked for sea/maritime/shipping distances or
 routes in JavaScript or TypeScript, `searoute-ts` computes realistic
 shipping-lane routes (not great-circle lines through land).

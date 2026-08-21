@@ -468,7 +468,7 @@ resolver into the core so `seaRoute('CNSHA', 'NLRTM')` works.
 ## Use from an AI agent (MCP)
 
 A companion [Model Context Protocol](https://modelcontextprotocol.io) server,
-[`@searoute-ts/mcp`](https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server),
+[`@searoute-ts/mcp`](https://www.npmjs.com/package/@searoute-ts/mcp) ([source](https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server)),
 lets AI agents (Claude Desktop, the `claude` CLI, etc.) compute real sea routes
 instead of guessing — asking "how far is Shanghai to Rotterdam by sea, avoiding
 Suez?" calls the library directly. It exposes two tools, `sea_route` and

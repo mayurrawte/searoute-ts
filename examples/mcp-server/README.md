@@ -1,5 +1,8 @@
 # @searoute-ts/mcp
 
+[![npm version](https://img.shields.io/npm/v/@searoute-ts/mcp.svg?style=flat)](https://www.npmjs.com/package/@searoute-ts/mcp)
+[![license](https://img.shields.io/npm/l/@searoute-ts/mcp.svg?style=flat)](https://github.com/mayurrawte/searoute-ts/blob/main/LICENSE)
+
 A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes
 [`searoute-ts`](https://github.com/mayurrawte/searoute-ts) to AI agents, so they
 can compute real shortest sea routes ("how far is Shanghai to Rotterdam by sea,
