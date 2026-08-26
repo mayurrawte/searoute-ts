@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mayurrawte/searoute",
+  "description": "Compute real shortest sea routes between ports or coordinates — distance, duration, canals/straits traversed (Suez, Panama…), restrictions, and route GeoJSON. Accepts UN/LOCODE port codes.",
+  "repository": {
+    "url": "https://github.com/mayurrawte/searoute-ts",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@searoute-ts/mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
