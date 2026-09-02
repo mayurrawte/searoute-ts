@@ -492,7 +492,36 @@ Or add it to any MCP client config:
 ```
 
 See the [server's README](https://github.com/mayurrawte/searoute-ts/tree/main/examples/mcp-server)
-for the full tool reference.
+for the full tool reference. For the rail leg, add
+[`@railroute-ts/mcp`](https://www.npmjs.com/package/@railroute-ts/mcp) alongside it
+(`claude mcp add railroute -- npx -y @railroute-ts/mcp`).
+
+## Multimodal: add the rail leg (railroute-ts)
+
+Sea distance is rarely the whole shipment. The sibling library
+[`railroute-ts`](https://github.com/mayurrawte/railroutes) routes over the
+OpenStreetMap rail network (Europe bundled, same API shape, same GeoJSON
+output), so a port-to-inland quote or a GLEC/CountEmissions-style report is one
+extra call:
+
+```ts
+import 'searoute-ts/ports';
+import { seaRoute } from 'searoute-ts';
+import { railRoute } from 'railroute-ts';
+import { EUROPE_NETWORK } from 'railroute-ts/networks/europe';
+
+const sea  = seaRoute('CNSHA', 'NLRTM', { units: 'kilometers', emissions: true, vesselClass: 'panamax' });
+const rail = railRoute([4.47, 51.92], [8.92, 44.41], { network: EUROPE_NETWORK, speedKmh: 60 }); // Rotterdam → Genoa
+
+sea.properties.length;        // ≈ 19,753 km  Shanghai → Rotterdam via Suez
+sea.properties.co2eTonnes;    // ≈ 4448 t CO₂e (rough, see Emissions above)
+rail.properties.length;       // ≈ 1,180 km  Rotterdam → Genoa via the Gotthard base tunnel
+rail.properties.gaugeChanges; // 0 — standard gauge all the way
+```
+
+`npm install railroute-ts` — [docs & interactive demo](https://mayurrawte.is-a.dev/railroutes/).
+Both libraries also ship MCP servers, so an AI agent can chain `sea_route` →
+`rail_route` for door-to-door distance (see below).
 
 ## How it works
 
