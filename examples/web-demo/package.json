@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "maplibre-gl": "^4.7.1",
-    "searoute-ts": "^2.0.0"
+    "searoute-ts": "^2.3.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
