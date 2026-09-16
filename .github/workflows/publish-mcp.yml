@@ -1,32 +1,33 @@
-name: Publish to npm
+name: Publish @searoute-ts/mcp to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['mcp-v*']
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write # OIDC trusted publishing + provenance
 
+defaults:
+  run:
+    working-directory: examples/mcp-server
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Skip MCP releases — @searoute-ts/mcp is published by publish-mcp.yml.
-    # Empty on workflow_dispatch, so manual runs still publish.
-    if: ${{ !startsWith(github.event.release.tag_name, 'mcp-v') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
           # NOTE: no registry-url — it writes an _authToken placeholder into
           # .npmrc which overrides OIDC trusted publishing with a dummy token.
       # Trusted publishing needs npm >= 11.5.1
       - run: npm install -g npm@latest
       - run: npm ci
-      - run: npm run build
-      # prepublishOnly runs lint + the full test suite before this publishes.
+      - run: npm test
+      # prepublishOnly runs the build before this publishes.
       # Auth via OIDC trusted publisher (configured on npmjs.com) — no token.
+      # --access public: the package is scoped and would default to restricted.
       - run: npm publish --provenance --access public
