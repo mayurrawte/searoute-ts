@@ -40,14 +40,36 @@
         <section class="card">
           <h2>Route</h2>
           <div class="route-inputs">
-            <label>
-              <span class="label-prefix" data-pin="origin">A</span>
-              <input id="origin" placeholder="origin — click map or pick a preset" readonly />
-            </label>
-            <label>
-              <span class="label-prefix" data-pin="destination">B</span>
-              <input id="destination" placeholder="destination — click map or pick a preset" readonly />
-            </label>
+            <div class="port-field">
+              <label>
+                <span class="label-prefix" data-pin="origin">A</span>
+                <input
+                  id="origin"
+                  placeholder="origin — port name or code, or click map"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-controls="origin-options"
+                />
+              </label>
+              <ul id="origin-options" class="port-options" role="listbox" hidden></ul>
+            </div>
+            <div class="port-field">
+              <label>
+                <span class="label-prefix" data-pin="destination">B</span>
+                <input
+                  id="destination"
+                  placeholder="destination — port name or code, or click map"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-controls="destination-options"
+                />
+              </label>
+              <ul id="destination-options" class="port-options" role="listbox" hidden></ul>
+            </div>
           </div>
 
           <div class="presets">
