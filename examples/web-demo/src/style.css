@@ -193,6 +193,42 @@ body {
   color: var(--text-muted);
 }
 
+.port-field {
+  position: relative;
+}
+.port-options {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 232px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+.port-options li {
+  padding: 7px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.port-options li[aria-selected='true'] {
+  background: var(--accent-ghost);
+}
+.port-options .port-code {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .presets {
   margin-top: 12px;
   display: flex;

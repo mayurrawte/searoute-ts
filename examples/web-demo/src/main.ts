@@ -8,8 +8,9 @@ import {
 } from 'searoute-ts';
 
 import { type LngLat, unwrapLine } from './geo.js';
+import { findPort, portLabel, type PortOption, searchPorts } from './ports.js';
 import { PRESETS, type Preset } from './presets.js';
-import { fmtCoord, readUrl, writeUrl, type UrlState } from './url-state.js';
+import { fmtCoord, type Place, readUrl, writeUrl, type UrlState } from './url-state.js';
 import './style.css';
 
 const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -92,19 +93,20 @@ for (const cb of restrictionToggles) {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function setPin(side: 'origin' | 'destination', coord: [number, number]) {
+function setPin(side: 'origin' | 'destination', place: Place) {
   const el = document.createElement('div');
   el.className = `pin ${side}`;
   el.textContent = side === 'origin' ? 'A' : 'B';
 
   const marker = new maplibregl.Marker({ element: el, draggable: true })
-    .setLngLat(coord)
+    .setLngLat(place.coord)
     .addTo(map);
   marker.on('dragend', () => {
     const ll = marker.getLngLat();
-    const c: [number, number] = [+ll.lng.toFixed(5), +ll.lat.toFixed(5)];
-    if (side === 'origin') state.origin = c;
-    else state.destination = c;
+    // Dragged off the port, so the code no longer describes this point.
+    const dragged: Place = { coord: [+ll.lng.toFixed(5), +ll.lat.toFixed(5)] };
+    if (side === 'origin') state.origin = dragged;
+    else state.destination = dragged;
     updateInputs();
     recompute();
   });
@@ -112,18 +114,24 @@ function setPin(side: 'origin' | 'destination', coord: [number, number]) {
   if (side === 'origin') {
     originMarker?.remove();
     originMarker = marker;
-    state.origin = coord;
+    state.origin = place;
   } else {
     destMarker?.remove();
     destMarker = marker;
-    state.destination = coord;
+    state.destination = place;
   }
   updateInputs();
 }
 
+function placeLabel(p: Place): string {
+  if (!p.code) return fmtCoord(p.coord);
+  const port = findPort(p.code);
+  return port ? portLabel(port) : p.code;
+}
+
 function updateInputs() {
-  originInput.value = state.origin ? fmtCoord(state.origin) : '';
-  destInput.value = state.destination ? fmtCoord(state.destination) : '';
+  originInput.value = state.origin ? placeLabel(state.origin) : '';
+  destInput.value = state.destination ? placeLabel(state.destination) : '';
   updateHint();
 }
 
@@ -140,8 +148,8 @@ function updateHint() {
 }
 
 function applyPreset(p: Preset) {
-  setPin('origin', p.origin);
-  setPin('destination', p.destination);
+  setPin('origin', { coord: p.origin });
+  setPin('destination', { coord: p.destination });
   recompute();
   fitToCoords([p.origin, p.destination]);
 }
@@ -161,6 +169,88 @@ function readRestrictions(): Passage[] {
   return out;
 }
 
+// ── Port picker ─────────────────────────────────────────────────────────────
+
+function attachPortPicker(side: 'origin' | 'destination', input: HTMLInputElement) {
+  const list = $<HTMLUListElement>(`#${side}-options`);
+  let options: PortOption[] = [];
+  let active = -1;
+
+  const close = () => {
+    list.hidden = true;
+    list.replaceChildren();
+    input.setAttribute('aria-expanded', 'false');
+    options = [];
+    active = -1;
+  };
+
+  const highlight = () => {
+    for (const [i, li] of [...list.children].entries()) {
+      li.setAttribute('aria-selected', String(i === active));
+    }
+  };
+
+  const choose = (port: PortOption) => {
+    close();
+    setPin(side, { coord: port.coordinates, code: port.code });
+    recompute();
+    const other = side === 'origin' ? state.destination : state.origin;
+    fitToCoords(other ? [port.coordinates, other.coord] : [port.coordinates]);
+  };
+
+  const open = (query: string) => {
+    options = searchPorts(query);
+    if (options.length === 0) return close();
+    list.replaceChildren(
+      ...options.map((port, i) => {
+        const li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', String(i === active));
+        li.append(`${port.name}, ${port.country} `);
+        const code = document.createElement('span');
+        code.className = 'port-code';
+        code.textContent = port.code;
+        li.appendChild(code);
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault(); // keep focus so the input's blur doesn't race the click
+          choose(port);
+        });
+        return li;
+      }),
+    );
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  };
+
+  input.addEventListener('input', () => {
+    active = -1;
+    open(input.value);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') return close();
+    if (options.length === 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+      highlight();
+      list.children[active]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      choose(options[active === -1 ? 0 : active]);
+    }
+  });
+
+  // Leaving the field abandons a half-typed query; show the pin again.
+  input.addEventListener('blur', () => {
+    close();
+    updateInputs();
+  });
+}
+
+attachPortPicker('origin', originInput);
+attachPortPicker('destination', destInput);
+
 // ── Compute & render ────────────────────────────────────────────────────────
 
 function recompute() {
@@ -176,7 +266,7 @@ function recompute() {
   writeUrl(state);
 
   try {
-    const route = seaRoute(state.origin, state.destination, {
+    const route = seaRoute(state.origin.coord, state.destination.coord, {
       units: 'kilometers',
       restrictions: state.restrictions,
       allowArctic: state.allowArctic,
@@ -295,11 +385,19 @@ function generateCode(): string {
   if (state.draftMeters > 0) opts.push(`  vesselDraftMeters: ${state.draftMeters},`);
   if (state.speedKnots > 0) opts.push(`  speedKnots: ${state.speedKnots},`);
   opts.push(`  returnPassages: true,`);
-  return `import { seaRoute } from 'searoute-ts';
+  // Both endpoints are ports — show the UN/LOCODE form, which needs the
+  // `searoute-ts/ports` import to register the code resolver.
+  const byCode = o.code && d.code;
+  const imports = byCode
+    ? `import { seaRoute } from 'searoute-ts';\nimport 'searoute-ts/ports';`
+    : `import { seaRoute } from 'searoute-ts';`;
+  const args = byCode
+    ? `  '${o.code}',\n  '${d.code}',`
+    : `  [${o.coord[0]}, ${o.coord[1]}],\n  [${d.coord[0]}, ${d.coord[1]}],`;
+  return `${imports}
 
 const route = seaRoute(
-  [${o[0]}, ${o[1]}],
-  [${d[0]}, ${d[1]}],
+${args}
   {
 ${opts.join('\n')}
   }
@@ -317,7 +415,7 @@ function escapeHtml(s: string): string {
 // ── Map click handler ──────────────────────────────────────────────────────
 
 map.on('click', (e) => {
-  const c: [number, number] = [+e.lngLat.lng.toFixed(5), +e.lngLat.lat.toFixed(5)];
+  const c: Place = { coord: [+e.lngLat.lng.toFixed(5), +e.lngLat.lat.toFixed(5)] };
   if (!state.origin) {
     setPin('origin', c);
   } else if (!state.destination) {
@@ -383,7 +481,7 @@ map.on('load', () => {
   if (state.origin) setPin('origin', state.origin);
   if (state.destination) setPin('destination', state.destination);
   if (state.origin && state.destination) {
-    fitToCoords([state.origin, state.destination]);
+    fitToCoords([state.origin.coord, state.destination.coord]);
     recompute();
   } else {
     updateHint();
