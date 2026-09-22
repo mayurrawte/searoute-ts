@@ -90,6 +90,10 @@ export function routeSlug(from, to) {
   return `${from}-${to}`.toUpperCase();
 }
 
+export function routeUrl(slug) {
+  return `${SITE}routes/${slug}/`;
+}
+
 export function routePairs(lanes) {
   const seen = new Set();
   const pairs = [];
@@ -315,8 +319,9 @@ console.log(route.properties.length); // ${fmt(r.nm)} nm`;
 }
 
 export function renderRoutePage(r) {
-  const url = `${SITE}routes/${r.slug}/`;
+  const url = routeUrl(r.slug);
   const title = routeTitle(r);
+  const description = routeDescription(r);
   const demo = `../../?from=${r.from.code}&to=${r.to.code}`;
   const passages = r.passages.filter((p) => p !== 'babalmandab');
 
@@ -327,8 +332,15 @@ export function renderRoutePage(r) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
     <title>${esc(title)}</title>
-    <meta name="description" content="${esc(routeDescription(r))}" />
+    <meta name="description" content="${esc(description)}" />
     <link rel="canonical" href="${url}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="searoute-ts" />
+    <meta property="og:url" content="${url}" />
+    <meta property="og:title" content="${esc(title)}" />
+    <meta property="og:description" content="${esc(description)}" />
+    <meta property="og:image" content="${SITE}og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
     <link rel="stylesheet" href="../route.css" />
     <script type="application/ld+json">${structuredData(r, url)}</script>
@@ -384,5 +396,13 @@ ${r.suezClosed ? `
     </main>
   </body>
 </html>
+`;
+}
+
+export function renderSitemap(urls) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map((u) => `  <url><loc>${esc(u)}</loc></url>`).join('\n')}
+</urlset>
 `;
 }

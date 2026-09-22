@@ -21,7 +21,7 @@ const route = seaRoute([121.5, 31.0], [4.4, 51.9]); // Shanghai → Rotterdam
   `vesselDraftMeters` (auto-blocks canals), `antimeridian` output handling
 - `seaRouteAlternatives(o, d, k)` — K-shortest realistic alternatives
 - `seaRouteMulti([a, b, c])` — multi-leg port rotations
-- Emissions: `import 'searoute-ts/eca'` then `{ emissions: true, vesselClass: 'ulcv' }`
+- Emissions: `import 'searoute-ts/eca'` then `{ emissions: true, vesselClass: 'postpanamax' }`
   → `ecaKm`, `ecaFraction`, `co2eTonnes` (estimates, not certified figures)
 - Resolutions: bundled 100 km network; `searoute-ts/marnet-20km`,
   `searoute-ts/marnet-50km` subpath exports; `loadNetwork(url)` for 5/10 km via CDN
@@ -30,9 +30,22 @@ const route = seaRoute([121.5, 31.0], [4.4, 51.9]); // Shanghai → Rotterdam
 
 - Docs: https://github.com/mayurrawte/searoute-ts#readme
 - Internals: https://github.com/mayurrawte/searoute-ts/blob/main/DOCS.md
-- Interactive demo: https://mayurrawte.github.io/searoute-ts/
+- Interactive demo: https://mayurrawte.is-a.dev/searoute-ts/
 - npm: https://www.npmjs.com/package/searoute-ts
 - MCP server for AI agents: `claude mcp add searoute -- npx -y @searoute-ts/mcp` — https://www.npmjs.com/package/@searoute-ts/mcp
+
+## Route pages
+
+Static pages for 294 common port pairs, one per route at
+`https://mayurrawte.is-a.dev/searoute-ts/routes/<FROM>-<TO>/` (UN/LOCODEs):
+distance in nm/km, ETA at 14/18/22 kn, passages, the distance with Suez
+closed, ECA km and a CO₂e estimate. Examples:
+
+- Shanghai → Rotterdam: https://mayurrawte.is-a.dev/searoute-ts/routes/CNSHA-NLRTM/
+- Singapore → Rotterdam: https://mayurrawte.is-a.dev/searoute-ts/routes/SGSIN-NLRTM/
+- New York → Los Angeles: https://mayurrawte.is-a.dev/searoute-ts/routes/USNYC-USLAX/
+
+Every route page is listed in https://mayurrawte.is-a.dev/searoute-ts/sitemap.xml
 
 ## For AI agents
 

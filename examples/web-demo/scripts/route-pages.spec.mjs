@@ -1,6 +1,17 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
-import { computeRoute, LANES, renderRoutePage, routePairs, routeSlug } from './route-pages.mjs';
+import {
+  computeRoute,
+  LANES,
+  renderRoutePage,
+  renderSitemap,
+  routePairs,
+  routeSlug,
+  routeUrl,
+  SITE,
+} from './route-pages.mjs';
 
 describe('routePairs', () => {
   it('expands a lane into both directions of every origin/destination pair', () => {
@@ -112,5 +123,46 @@ describe('renderRoutePage', () => {
 
   it('needs no script to read', () => {
     expect(html.replace(/<script type="application\/ld\+json">.*?<\/script>/s, '')).not.toContain('<script');
+  });
+});
+
+describe('renderSitemap', () => {
+  const xml = renderSitemap([SITE, routeUrl('CNSHA-NLRTM'), routeUrl('NLRTM-CNSHA')]);
+
+  it('lists every URL once', () => {
+    expect(xml.match(/<loc>/g)).toHaveLength(3);
+    expect(xml).toContain('<loc>https://mayurrawte.is-a.dev/searoute-ts/routes/CNSHA-NLRTM/</loc>');
+  });
+
+  it('is a sitemaps.org urlset', () => {
+    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
+    expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
+    expect(xml.trim().endsWith('</urlset>')).toBe(true);
+  });
+});
+
+describe('page meta', () => {
+  const pages = {
+    'the demo': readFileSync(new URL('../index.html', import.meta.url), 'utf8'),
+    'a route page': renderRoutePage(computeRoute('SGSIN', 'NLRTM')),
+  };
+
+  for (const [name, html] of Object.entries(pages)) {
+    it(`${name} has canonical, Open Graph and Twitter card tags`, () => {
+      const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+      expect(canonical?.startsWith(SITE)).toBe(true);
+      expect(html).toContain(`<meta property="og:url" content="${canonical}" />`);
+      for (const p of ['og:type', 'og:title', 'og:description', 'og:site_name']) {
+        expect(html).toMatch(new RegExp(`<meta\\s+property="${p}"\\s+content="[^"]+"`));
+      }
+      expect(html).toContain(`<meta property="og:image" content="${SITE}og.png" />`);
+      expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    });
+  }
+
+  it('titles the route card after the route', () => {
+    expect(pages['a route page']).toContain(
+      '<meta property="og:title" content="Singapore to Rotterdam sea distance: 8,439 nm via Suez" />',
+    );
   });
 });
