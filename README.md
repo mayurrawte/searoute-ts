@@ -549,6 +549,15 @@ Eurostat data (5/10/20/50 km), see
 **Does it handle the Red Sea / Suez crisis?** Yes — pass
 `restrictions: ['suez', 'babelmandeb']` to force Cape of Good Hope routing.
 
+**`Cannot find module '…/searoute-ts/dist/lib/utils'` on 1.x?** 1.x (up to
+1.2.1) shipped an ESM build with extensionless imports under `"main"`, so plain
+Node can't load it without patching. Fixed in 2.0: install `searoute-ts@^2`,
+because a `^1` range never picks it up. When upgrading, use the named
+`import { seaRoute }`. Failures now throw `NoRouteError` / `SnapFailedError`
+instead of returning `null`, and nautical-mile lengths are ~24 % smaller,
+because 1.x over-counted them. See the 2.0.0 migration notes in the
+[CHANGELOG](./CHANGELOG.md).
+
 **Is the great-circle distance correct across the antimeridian?** Yes — the
 marnet has been normalised so the Pacific is a connected graph, and all
 distances use haversine internally.
