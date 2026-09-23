@@ -268,6 +268,22 @@ GDAL conversion), host the resulting JSON, and load it with
 }
 ```
 
+`length` runs between the two **snapped network vertices**. It does not include
+the legs from your inputs to the network (`originSnapKm`, `destinationSnapKm`,
+always in km), even with `appendOriginDestination: true`, which only adds the
+raw points to the line. For a door-to-door figure, add them yourself:
+
+```ts
+const { length, originSnapKm, destinationSnapKm } = seaRoute(a, b, { units: 'kilometers' }).properties;
+const doorToDoorKm = originSnapKm + length + destinationSnapKm;
+```
+
+On hops shorter than the network resolution (~100 km by default, ~20 km with
+`searoute-ts/marnet-20km`), the snapped vertices can sit closer together than
+the inputs, so `length` can come out below `greatCircleLength`
+(`detourRatio < 1`). If both inputs snap to the same vertex, `NoRouteError` is
+thrown.
+
 ## Full options
 
 ```ts
