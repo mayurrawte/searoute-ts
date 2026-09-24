@@ -159,3 +159,27 @@ footer {
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+h3 {
+  font-size: 1rem;
+  margin: 20px 0 4px;
+}
+
+thead th {
+  width: auto;
+}
+
+section h2 a {
+  text-decoration: none;
+}
+
+.code {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.links {
+  columns: 2 220px;
+  padding-left: 18px;
+}

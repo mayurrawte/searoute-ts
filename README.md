@@ -23,6 +23,8 @@ const route = seaRoute([121.5, 31.0], [4.4, 51.9]);
 
 **🗺️ [Try the interactive demo](https://mayurrawte.github.io/searoute-ts/)** — click two points on a map and see the route, with all options live. ([source](https://github.com/mayurrawte/searoute-ts/tree/main/examples/web-demo))
 
+**📏 [Port-to-port sea distances](https://mayurrawte.is-a.dev/searoute-ts/routes/)** — distance, sailing time and canal passages for common routes between major ports.
+
 > Works from plain JavaScript too — the package ships compiled `.js` plus
 > `.d.ts` declarations. The `-ts` in the name is for searchability, not a
 > language requirement.

@@ -94,6 +94,10 @@ export function routeUrl(slug) {
   return `${SITE}routes/${slug}/`;
 }
 
+export function portUrl(code) {
+  return `${SITE}ports/${code}/`;
+}
+
 export function routePairs(lanes) {
   const seen = new Set();
   const pairs = [];
@@ -219,7 +223,7 @@ function structuredData(r, url) {
     name: place(p),
     geo: { '@type': 'GeoCoordinates', latitude: p.coord[1], longitude: p.coord[0] },
   });
-  const data = {
+  return {
     '@context': 'https://schema.org',
     '@graph': [
       {
@@ -241,7 +245,6 @@ function structuredData(r, url) {
       },
     ],
   };
-  return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
 // Equirectangular, squeezed by cos(latitude) so mid-latitude routes don't
@@ -318,13 +321,8 @@ const route = seaRoute('${r.from.code}', '${r.to.code}', { vesselDraftMeters: ${
 console.log(route.properties.length); // ${fmt(r.nm)} nm`;
 }
 
-export function renderRoutePage(r) {
-  const url = routeUrl(r.slug);
-  const title = routeTitle(r);
-  const description = routeDescription(r);
-  const demo = `../../?from=${r.from.code}&to=${r.to.code}`;
-  const passages = r.passages.filter((p) => p !== 'babalmandab');
-
+// `root` is the relative path from the page back to the demo root.
+function pageHead({ title, description, url, root, ogType, jsonLd }) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -334,21 +332,74 @@ export function renderRoutePage(r) {
     <title>${esc(title)}</title>
     <meta name="description" content="${esc(description)}" />
     <link rel="canonical" href="${url}" />
-    <meta property="og:type" content="article" />
+    <meta property="og:type" content="${ogType}" />
     <meta property="og:site_name" content="searoute-ts" />
     <meta property="og:url" content="${url}" />
     <meta property="og:title" content="${esc(title)}" />
     <meta property="og:description" content="${esc(description)}" />
     <meta property="og:image" content="${SITE}og.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/svg+xml" href="../../favicon.svg" />
-    <link rel="stylesheet" href="../route.css" />
-    <script type="application/ld+json">${structuredData(r, url)}</script>
+    <link rel="icon" type="image/svg+xml" href="${root}favicon.svg" />
+    <link rel="stylesheet" href="${root}routes/route.css" />
+    <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
   </head>
   <body>
     <main>
-      <nav class="crumbs"><a href="../../">⚓︎ searoute-ts</a></nav>
-      <h1>${esc(r.from.name)} to ${esc(r.to.name)} sea distance</h1>
+      <nav class="crumbs"><a href="${root}">⚓︎ searoute-ts</a> › <a href="${root}routes/">Routes</a></nav>
+`;
+}
+
+const FOOTER = `      <footer>
+        Computed with searoute-ts ${VERSION} on the Eurostat marnet network. Shortest-path estimates, not for navigation.
+      </footer>
+`;
+
+const PAGE_END = `    </main>
+  </body>
+</html>
+`;
+
+export function relatedRoutes(r, all, limit = 6) {
+  const byLength = all.filter((o) => o !== r).sort((a, b) => a.nm - b.nm);
+  return {
+    reverse: byLength.find((o) => o.from.code === r.to.code && o.to.code === r.from.code),
+    fromSame: byLength.filter((o) => o.from.code === r.from.code).slice(0, limit),
+    toSame: byLength.filter((o) => o.to.code === r.to.code).slice(0, limit),
+  };
+}
+
+const routeLink = (o, prefix) =>
+  `<a href="${prefix}${o.slug}/">${esc(o.from.name)} to ${esc(o.to.name)}</a> · ${fmt(o.nm)} nm`;
+
+function relatedSection(r, { reverse, fromSame, toSame }) {
+  const list = (routes) => `<ul>${routes.map((o) => `<li>${routeLink(o, '../')}</li>`).join('')}</ul>`;
+  return `
+      <h2>Related routes</h2>
+${reverse ? `      <p>Reverse direction: ${routeLink(reverse, '../')}</p>
+` : ''}${fromSame.length ? `      <h3>More from ${esc(r.from.name)}</h3>
+      ${list(fromSame)}
+` : ''}${toSame.length ? `      <h3>More to ${esc(r.to.name)}</h3>
+      ${list(toSame)}
+` : ''}      <p>
+        All routes for <a href="../../ports/${r.from.code}/">${esc(r.from.name)}</a> and
+        <a href="../../ports/${r.to.code}/">${esc(r.to.name)}</a>, or <a href="../">every route</a>.
+      </p>
+`;
+}
+
+export function renderRoutePage(r, related) {
+  const url = routeUrl(r.slug);
+  const demo = `../../?from=${r.from.code}&to=${r.to.code}`;
+  const passages = r.passages.filter((p) => p !== 'babalmandab');
+
+  return `${pageHead({
+    title: routeTitle(r),
+    description: routeDescription(r),
+    url,
+    root: '../../',
+    ogType: 'article',
+    jsonLd: structuredData(r, url),
+  })}      <h1>${esc(r.from.name)} to ${esc(r.to.name)} sea distance</h1>
       <p class="lede">
         ${esc(place(r.from))} (${r.from.code}) to ${esc(place(r.to))} (${r.to.code}) is
         <strong>${fmt(r.nm)} nautical miles</strong> (${fmt(r.km)} km) by sea${r.headline ? `, via the ${PASSAGE_NAMES[r.headline]}` : ''}.
@@ -389,14 +440,122 @@ ${r.suezClosed ? `
       <h2>Compute it yourself</h2>
       <pre><code>${esc(codeSnippet(r))}</code></pre>
       <p><code>npm install searoute-ts</code> · <a href="https://github.com/mayurrawte/searoute-ts">GitHub</a> · <a href="https://www.npmjs.com/package/searoute-ts">npm</a></p>
+${relatedSection(r, related)}
+${FOOTER}${PAGE_END}`;
+}
 
-      <footer>
-        Computed with searoute-ts ${VERSION} on the Eurostat marnet network. Shortest-path estimates, not for navigation.
-      </footer>
-    </main>
-  </body>
-</html>
+function routeTable(routes, other, heading) {
+  return `      <table>
+        <thead><tr><th scope="col">${heading}</th><th scope="col">Distance</th><th scope="col">Via</th></tr></thead>
+        <tbody>
+${routes
+  .map(
+    (o) =>
+      `          <tr><td><a href="../../routes/${o.slug}/">${esc(place(other(o)))}</a></td><td>${fmt(o.nm)} nm</td><td>${o.headline ? PASSAGE_NAMES[o.headline] : ''}</td></tr>`,
+  )
+  .join('\n')}
+        </tbody>
+      </table>
 `;
+}
+
+export function renderPortPage(code, all) {
+  const p = port(code);
+  const byLength = [...all].sort((a, b) => a.nm - b.nm);
+  const outbound = byLength.filter((o) => o.from.code === p.code);
+  const inbound = byLength.filter((o) => o.to.code === p.code);
+  const url = portUrl(p.code);
+  const title = `${p.name} (${p.code}) sea distances: ${outbound.length + inbound.length} routes`;
+  const description =
+    `Sea distances from and to ${place(p)} (UN/LOCODE ${p.code}): ` +
+    outbound
+      .slice(0, 3)
+      .map((o) => `${o.to.name} ${fmt(o.nm)} nm`)
+      .join(', ') +
+    '. Computed with searoute-ts.';
+  const [lon, lat] = p.coord;
+
+  return `${pageHead({
+    title,
+    description,
+    url,
+    root: '../../',
+    ogType: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      '@id': url,
+      url,
+      name: title,
+      description,
+      isPartOf: { '@type': 'WebSite', name: 'searoute-ts', url: SITE },
+      about: {
+        '@type': 'Place',
+        name: place(p),
+        geo: { '@type': 'GeoCoordinates', latitude: lat, longitude: lon },
+      },
+    },
+  })}      <h1>${esc(p.name)} sea routes</h1>
+      <p class="lede">
+        ${esc(p.name)}, ${esc(p.country)} · UN/LOCODE <strong>${p.code}</strong> ·
+        ${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}
+      </p>
+      <p><a class="cta" href="../../?from=${p.code}">Route from ${esc(p.name)} in the demo →</a></p>
+${outbound.length ? `
+      <h2>From ${esc(p.name)}</h2>
+${routeTable(outbound, (o) => o.to, 'To')}` : ''}${inbound.length ? `
+      <h2>To ${esc(p.name)}</h2>
+${routeTable(inbound, (o) => o.from, 'From')}` : ''}
+${FOOTER}${PAGE_END}`;
+}
+
+export function portCodes(all) {
+  return [...new Set(all.flatMap((r) => [r.from.code, r.to.code]))];
+}
+
+export function renderRoutesIndex(all) {
+  const url = `${SITE}routes/`;
+  const title = `Port-to-port sea distances: ${all.length} routes between major ports`;
+  const description =
+    `Sea distances, sailing times and canal passages for ${all.length} routes between ` +
+    `${portCodes(all).length} major container ports. Computed with searoute-ts.`;
+  const ports = portCodes(all)
+    .map(port)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return `${pageHead({
+    title,
+    description,
+    url,
+    root: '../',
+    ogType: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      '@id': url,
+      url,
+      name: title,
+      description,
+      isPartOf: { '@type': 'WebSite', name: 'searoute-ts', url: SITE },
+    },
+  })}      <h1>Port-to-port sea distances</h1>
+      <p class="lede">${all.length} routes between ${ports.length} major ports, grouped by origin.</p>
+${ports
+  .map((p) => {
+    const outbound = all.filter((o) => o.from.code === p.code).sort((a, b) => a.nm - b.nm);
+    return `
+      <section>
+        <h2><a href="../ports/${p.code}/">${esc(place(p))}</a> <span class="code">${p.code}</span></h2>
+        <ul class="links">${outbound.map((o) => `<li><a href="${o.slug}/">${esc(o.to.name)}</a> · ${fmt(o.nm)} nm</li>`).join('')}</ul>
+      </section>`;
+  })
+  .join('')}
+
+${FOOTER}${PAGE_END}`;
+}
+
+export function siteUrls(all) {
+  return [SITE, `${SITE}routes/`, ...portCodes(all).map(portUrl), ...all.map((r) => routeUrl(r.slug))];
 }
 
 export function renderSitemap(urls) {

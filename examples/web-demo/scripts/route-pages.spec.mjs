@@ -5,13 +5,20 @@ import { describe, expect, it } from 'vitest';
 import {
   computeRoute,
   LANES,
+  portUrl,
+  relatedRoutes,
+  renderPortPage,
   renderRoutePage,
+  renderRoutesIndex,
   renderSitemap,
   routePairs,
   routeSlug,
   routeUrl,
   SITE,
+  siteUrls,
 } from './route-pages.mjs';
+
+const lone = (r) => renderRoutePage(r, relatedRoutes(r, [r]));
 
 describe('routePairs', () => {
   it('expands a lane into both directions of every origin/destination pair', () => {
@@ -89,7 +96,7 @@ describe('computeRoute', () => {
 });
 
 describe('renderRoutePage', () => {
-  const html = renderRoutePage(computeRoute('CNSHA', 'NLRTM'));
+  const html = lone(computeRoute('CNSHA', 'NLRTM'));
 
   it('has a unique title and description naming the distance and canal', () => {
     expect(html).toContain('<title>Shanghai to Rotterdam sea distance: 10,666 nm via Suez</title>');
@@ -144,7 +151,9 @@ describe('renderSitemap', () => {
 describe('page meta', () => {
   const pages = {
     'the demo': readFileSync(new URL('../index.html', import.meta.url), 'utf8'),
-    'a route page': renderRoutePage(computeRoute('SGSIN', 'NLRTM')),
+    'a route page': lone(computeRoute('SGSIN', 'NLRTM')),
+    'a port page': renderPortPage('SGSIN', [computeRoute('SGSIN', 'NLRTM')]),
+    'the route index': renderRoutesIndex([computeRoute('SGSIN', 'NLRTM')]),
   };
 
   for (const [name, html] of Object.entries(pages)) {
@@ -164,5 +173,94 @@ describe('page meta', () => {
     expect(pages['a route page']).toContain(
       '<meta property="og:title" content="Singapore to Rotterdam sea distance: 8,439 nm via Suez" />',
     );
+  });
+});
+
+describe('internal links', () => {
+  const routes = [
+    ['CNSHA', 'NLRTM'],
+    ['NLRTM', 'CNSHA'],
+    ['CNSHA', 'SGSIN'],
+    ['SGSIN', 'NLRTM'],
+    ['CNSHA', 'DEHAM'],
+  ].map(([a, b]) => computeRoute(a, b));
+  const [shaRtm, rtmSha, shaSin, sinRtm, shaHam] = routes;
+  const hrefs = (html) => [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+
+  describe('relatedRoutes', () => {
+    const related = relatedRoutes(shaRtm, routes);
+
+    it('finds the reverse direction', () => {
+      expect(related.reverse).toBe(rtmSha);
+    });
+
+    it('lists other routes from the same origin, shortest first', () => {
+      expect(related.fromSame).toEqual([shaSin, shaHam]);
+    });
+
+    it('lists other routes to the same destination', () => {
+      expect(related.toSame).toEqual([sinRtm]);
+    });
+
+    it('caps each list', () => {
+      expect(relatedRoutes(shaRtm, routes, 1).fromSame).toEqual([shaSin]);
+    });
+  });
+
+  it('links a route page to its reverse, its neighbours and both port pages', () => {
+    const links = hrefs(renderRoutePage(shaRtm, relatedRoutes(shaRtm, routes)));
+    expect(links).toEqual(
+      expect.arrayContaining([
+        '../NLRTM-CNSHA/',
+        '../CNSHA-SGSIN/',
+        '../SGSIN-NLRTM/',
+        '../../ports/CNSHA/',
+        '../../ports/NLRTM/',
+        '../',
+      ]),
+    );
+  });
+
+  describe('renderPortPage', () => {
+    const html = renderPortPage('CNSHA', routes);
+
+    it('names the port, its country and UN/LOCODE', () => {
+      expect(html).toContain('<h1>Shanghai sea routes</h1>');
+      expect(html).toContain('China');
+      expect(html).toContain('CNSHA');
+      expect(html).toContain(`<link rel="canonical" href="${SITE}ports/CNSHA/" />`);
+    });
+
+    it('lists every route from or to the port, with its distance', () => {
+      const links = hrefs(html);
+      for (const r of [shaRtm, rtmSha, shaSin, shaHam]) {
+        expect(links).toContain(`../../routes/${r.slug}/`);
+      }
+      expect(links).not.toContain('../../routes/SGSIN-NLRTM/');
+      expect(html).toContain('10,666 nm');
+    });
+  });
+
+  describe('renderRoutesIndex', () => {
+    const html = renderRoutesIndex(routes);
+
+    it('links every route page directly and every port page', () => {
+      const links = hrefs(html);
+      for (const r of routes) expect(links).toContain(`${r.slug}/`);
+      for (const code of ['CNSHA', 'NLRTM', 'SGSIN']) expect(links).toContain(`../ports/${code}/`);
+    });
+
+    it('is canonical at /routes/', () => {
+      expect(html).toContain(`<link rel="canonical" href="${SITE}routes/" />`);
+    });
+  });
+
+  it('puts the index, every port page and every route page in the sitemap', () => {
+    const urls = siteUrls(routes);
+    expect(urls).toEqual(
+      expect.arrayContaining([SITE, `${SITE}routes/`, portUrl('DEHAM'), routeUrl('CNSHA-DEHAM')]),
+    );
+    expect(urls).toHaveLength(2 + 4 + routes.length);
+    expect(new Set(urls).size).toBe(urls.length);
   });
 });
