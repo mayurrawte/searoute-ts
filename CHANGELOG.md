@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- When origin and destination snap to the same network vertex (points closer
+  together than the network resolution), `NoRouteError` now says so instead of
+  the generic "No sea route found between origin and destination". Same error
+  class, so existing `instanceof` checks are unaffected.
+
 ## 2.3.0 — 2026-08-20
 
 ### Added
