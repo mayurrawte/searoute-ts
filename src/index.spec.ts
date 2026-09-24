@@ -423,6 +423,12 @@ test('throws NoRouteError when a restriction severs the only path', (t) => {
   });
 });
 
+test('NoRouteError says when origin and destination snap to the same vertex', (t) => {
+  // Two points ~8 km apart off Singapore share one nearest network vertex.
+  const err = t.throws(() => seaRoute([103.84, 1.26], [103.9, 1.3]), { instanceOf: NoRouteError });
+  t.regex(err?.message ?? '', /same network vertex/);
+});
+
 test('returnPassages reports narrow straits crossed mid-edge (bosporus)', (t) => {
   // The network edge through the Bosporus is long; its vertices sit outside
   // the strait bbox, so detection must test the segment, not just the points.
