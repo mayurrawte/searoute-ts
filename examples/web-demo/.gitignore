@@ -3,3 +3,4 @@ dist
 *.log
 .vite
 public/marnet.json
+public/routes

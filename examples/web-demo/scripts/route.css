@@ -1,0 +1,161 @@
+/* Shared by the generated route pages; palette follows src/style.css. */
+:root {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --border: rgba(15, 23, 42, 0.1);
+  --accent: #0284c7;
+  --accent-ghost: rgba(14, 165, 233, 0.12);
+  --origin: #10b981;
+  --route: #0ea5e9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #060914;
+    --surface: #0d1321;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: rgba(148, 163, 184, 0.16);
+    --accent: #38bdf8;
+    --accent-ghost: rgba(56, 189, 248, 0.18);
+    --origin: #34d399;
+    --route: #38bdf8;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+a {
+  color: var(--accent);
+}
+
+.crumbs a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: 1.9rem;
+  line-height: 1.2;
+  margin: 16px 0 8px;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 32px 0 8px;
+}
+
+.lede {
+  font-size: 1.1rem;
+}
+
+.cta {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+figure {
+  margin: 24px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.route-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.route-map .grid {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.route-map .route {
+  fill: none;
+  stroke: var(--route);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.route-map circle.port {
+  fill: var(--origin);
+}
+.route-map circle.passage {
+  fill: var(--text-muted);
+}
+.route-map text {
+  fill: var(--text);
+  font-size: 13px;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+.route-map text.passage {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+th {
+  font-weight: 500;
+  color: var(--text-muted);
+  width: 45%;
+}
+
+.note,
+footer {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+pre {
+  overflow-x: auto;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+footer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}

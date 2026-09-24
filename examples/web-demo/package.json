@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/emit-marnet.mjs",
+    "prebuild": "node scripts/emit-marnet.mjs && node scripts/emit-route-pages.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
