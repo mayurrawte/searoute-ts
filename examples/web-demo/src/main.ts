@@ -90,6 +90,7 @@ for (const cb of restrictionToggles) {
   const r = cb.dataset.restrict as Passage;
   cb.checked = state.restrictions.includes(r);
 }
+updateInputs();
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -483,8 +484,6 @@ map.on('load', () => {
   if (state.origin && state.destination) {
     fitToCoords([state.origin.coord, state.destination.coord]);
     recompute();
-  } else {
-    updateHint();
   }
 });
 
