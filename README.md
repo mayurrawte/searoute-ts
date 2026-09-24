@@ -268,6 +268,22 @@ GDAL conversion), host the resulting JSON, and load it with
 }
 ```
 
+`length` runs between the two **snapped network vertices**. It does not include
+the legs from your inputs to the network (`originSnapKm`, `destinationSnapKm`,
+always in km), even with `appendOriginDestination: true`, which only adds the
+raw points to the line. For a door-to-door figure, add them yourself:
+
+```ts
+const { length, originSnapKm, destinationSnapKm } = seaRoute(a, b, { units: 'kilometers' }).properties;
+const doorToDoorKm = originSnapKm + length + destinationSnapKm;
+```
+
+On hops shorter than the network resolution (~100 km by default, ~20 km with
+`searoute-ts/marnet-20km`), the snapped vertices can sit closer together than
+the inputs, so `length` can come out below `greatCircleLength`
+(`detourRatio < 1`). If both inputs snap to the same vertex, `NoRouteError` is
+thrown.
+
 ## Full options
 
 ```ts
@@ -548,6 +564,15 @@ Eurostat data (5/10/20/50 km), see
 
 **Does it handle the Red Sea / Suez crisis?** Yes — pass
 `restrictions: ['suez', 'babelmandeb']` to force Cape of Good Hope routing.
+
+**`Cannot find module '…/searoute-ts/dist/lib/utils'` on 1.x?** 1.x (up to
+1.2.1) shipped an ESM build with extensionless imports under `"main"`, so plain
+Node can't load it without patching. Fixed in 2.0: install `searoute-ts@^2`,
+because a `^1` range never picks it up. When upgrading, use the named
+`import { seaRoute }`. Failures now throw `NoRouteError` / `SnapFailedError`
+instead of returning `null`, and nautical-mile lengths are ~24 % smaller,
+because 1.x over-counted them. See the 2.0.0 migration notes in the
+[CHANGELOG](./CHANGELOG.md).
 
 **Is the great-circle distance correct across the antimeridian?** Yes — the
 marnet has been normalised so the Pacific is a connected graph, and all

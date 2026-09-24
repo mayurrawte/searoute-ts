@@ -288,6 +288,16 @@ export function seaRoute(
   const oSnap = snapToNetwork(originFeature, network, 'origin', options.maxSnapDistanceKm);
   const dSnap = snapToNetwork(destFeature, network, 'destination', options.maxSnapDistanceKm);
 
+  const [oLon, oLat] = oSnap.snapped.geometry.coordinates;
+  const [dLon, dLat] = dSnap.snapped.geometry.coordinates;
+  if (oLon === dLon && oLat === dLat) {
+    throw new NoRouteError(
+      `Origin and destination snap to the same network vertex ` +
+        `(${oSnap.distanceKm.toFixed(1)} km and ${dSnap.distanceKm.toFixed(1)} km away); ` +
+        `they are closer together than the network resolution`,
+    );
+  }
+
   const finder = buildFinder(network, restrictions);
   const result = finder.findPath(oSnap.snapped, dSnap.snapped);
   if (!result) throw new NoRouteError();
