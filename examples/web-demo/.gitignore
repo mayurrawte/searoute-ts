@@ -4,3 +4,4 @@ dist
 .vite
 public/marnet.json
 public/routes
+public/sitemap.xml
