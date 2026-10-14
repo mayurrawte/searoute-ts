@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.3.1 — 2026-10-14
 
 ### Changed
 - When origin and destination snap to the same network vertex (points closer
