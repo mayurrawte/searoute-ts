@@ -601,4 +601,5 @@ without the install cost, generate and host them and use `loadNetwork` instead.
 
 ## License
 
-MIT © Mayur Rawte
+MIT © Mayur Rawte, except the bundled Eurostat maritime network, which is
+EUPL-1.2. See [NOTICE](NOTICE).
