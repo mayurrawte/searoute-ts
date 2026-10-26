@@ -1,0 +1,36 @@
+The maritime network files (data/marnet.cjs, data/marnet-50km.cjs,
+data/marnet-20km.cjs) are derived from the Eurostat searoute network,
+https://github.com/eurostat/searoute, licensed under the EUPL-1.2. The full
+licence text is in LICENSES/EUPL-1.2.txt.
+
+The marnet networks in this package are modified from the Eurostat originals
+(EUPL-1.2, Art. 5). The GeoPackage files were converted to GeoJSON and then to a
+JSON-string CommonJS asset by scripts/build-marnet.cjs, with vertices at
+longitude 180 rewritten to -180.
+
+Port data (src/ports/data.ts) is derived from marchah/sea-ports, licensed under
+the MIT licence.
+
+All other code in this package is licensed under the MIT licence (LICENSE).
+
+marchah/sea-ports (ports data):
+
+Copyright (c) 2016 marchah
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

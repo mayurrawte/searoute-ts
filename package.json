@@ -41,7 +41,7 @@
     "type": "git",
     "url": "git+https://github.com/mayurrawte/searoute-ts.git"
   },
-  "license": "MIT",
+  "license": "MIT AND EUPL-1.2",
   "author": "Mayur Rawte",
   "keywords": [
     "searoute",
@@ -117,6 +117,8 @@
     "CHANGELOG.md",
     "DOCS.md",
     "LICENSE",
+    "LICENSES",
+    "NOTICE",
     "README.md"
   ],
   "ava": {
